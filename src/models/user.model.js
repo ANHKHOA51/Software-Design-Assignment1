@@ -1,5 +1,7 @@
 import db from '../utils/db.js';
 
+const TABLE = "users";
+
 export async function add(user) {
   // PostgreSQL
   const rows = await db('users')
@@ -30,47 +32,15 @@ export async function update(id, user) {
   const rows = await db('users')
     .where('id', id)
     .update(user)
-    .returning('*'); 
-  
-  return rows[0]; 
+    .returning('*');
+
+  return rows[0];
 }
 
 export function findByEmail(email) {
   return db('users').where('email', email).first();
 }
 
-// ===================== OTP USING KNEX =====================
-
-// Tạo OTP
-export function createOtp({ user_id, otp_code, purpose, expires_at }) {
-  return db('user_otps').insert({
-    user_id,
-    otp_code,
-    purpose,
-    expires_at
-  });
-}
-
-// Tìm OTP còn hiệu lực
-export function findValidOtp({ user_id, otp_code, purpose }) {
-  return db('user_otps')
-    .where({
-      user_id,
-      otp_code,
-      purpose,
-      used: false
-    })
-    .andWhere('expires_at', '>', db.fn.now())
-    .orderBy('id', 'desc')
-    .first();
-}
-
-// Đánh dấu OTP đã dùng
-export function markOtpUsed(id) {
-  return db('user_otps')
-    .where('id', id)
-    .update({ used: true });
-}
 
 // Verify email user
 export function verifyUserEmail(user_id) {
@@ -115,9 +85,9 @@ export function addOAuthProvider(user_id, provider, oauth_id) {
       oauth_id: oauth_id,
       email_verified: true
     });
-} 
+}
 export async function deleteUser(id) {
-  return db('users')  
+  return db('users')
     .where('id', id)
     .del();
 }

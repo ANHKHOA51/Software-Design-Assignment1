@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import passport from '../utils/passport.js';
 import * as userModel from '../models/user.model.js';
+import * as userOtpsModel from '../models/user_otps.model.js';
 import * as upgradeRequestModel from '../models/upgradeRequest.model.js';
 import * as watchlistModel from '../models/watchlist.model.js';
 import * as reviewModel from '../models/review.model.js';
@@ -17,19 +18,19 @@ function generateOtp() {
 
 router.get('/ratings', isAuthenticated, async (req, res) => {
   const currentUserId = req.session.authUser.id;
-  
+
   // // Get rating point
   const ratingData = await reviewModel.calculateRatingPoint(currentUserId);
   const rating_point = ratingData ? ratingData.rating_point : 0;
   // // Get all reviews (model already excludes rating=0)
   const reviews = await reviewModel.getReviewsByUserId(currentUserId);
-  
+
   // // Calculate statistics
   const totalReviews = reviews.length;
   const positiveReviews = reviews.filter(r => r.rating === 1).length;
   const negativeReviews = reviews.filter(r => r.rating === -1).length;
-  
-  res.render('vwAccount/rating', { 
+
+  res.render('vwAccount/rating', {
     activeSection: 'ratings',
     rating_point,
     reviews,
@@ -82,7 +83,7 @@ router.post('/forgot-password', async (req, res) => {
   }
   const otp = generateOtp();
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 phút
-  await userModel.createOtp({
+  await userOtpsModel.createOtp({
     user_id: user.id,
     otp_code: otp,
     purpose: 'reset_password',
@@ -102,23 +103,23 @@ router.post('/forgot-password', async (req, res) => {
   });
 });
 router.post('/verify-forgot-password-otp', async (req, res) => {
-    const { email, otp } = req.body;
-    const user = await userModel.findByEmail(email);
-    const otpRecord = await userModel.findValidOtp({
-      user_id: user.id,
-      otp_code: otp,
-      purpose: 'reset_password',
+  const { email, otp } = req.body;
+  const user = await userModel.findByEmail(email);
+  const otpRecord = await userOtpsModel.findValidOtp({
+    user_id: user.id,
+    otp_code: otp,
+    purpose: 'reset_password',
+  });
+  console.log('Verifying OTP for email:', email, ' OTP:', otp);
+  if (!otpRecord) {
+    console.log('Invalid OTP attempt for email:', email);
+    return res.render('vwAccount/auth/verify-forgot-password-otp', {
+      email,
+      error_message: 'Invalid or expired OTP.',
     });
-    console.log('Verifying OTP for email:', email, ' OTP:', otp);
-    if (!otpRecord) {
-      console.log('Invalid OTP attempt for email:', email);
-      return res.render('vwAccount/auth/verify-forgot-password-otp', {
-        email,
-        error_message: 'Invalid or expired OTP.',
-      });
-    }
-    await userModel.markOtpUsed(otpRecord.id);
-    return res.render('vwAccount/auth/reset-password', { email });
+  }
+  await userOtpsModel.markOtpUsed(otpRecord.id);
+  return res.render('vwAccount/auth/reset-password', { email });
 });
 router.post('/resend-forgot-password-otp', async (req, res) => {
   const { email } = req.body;
@@ -131,7 +132,7 @@ router.post('/resend-forgot-password-otp', async (req, res) => {
   }
   const otp = generateOtp();
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 phút
-  await userModel.createOtp({
+  await userOtpsModel.createOtp({
     user_id: user.id,
     otp_code: otp,
     purpose: 'reset_password',
@@ -197,7 +198,7 @@ router.post('/signin', async function (req, res) {
     const otp = generateOtp();
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 phút
 
-    await userModel.createOtp({
+    await userOtpsModel.createOtp({
       user_id: user.id,
       otp_code: otp,
       purpose: 'verify_email',
@@ -230,33 +231,33 @@ router.post('/signin', async function (req, res) {
 // POST /signup
 router.post('/signup', async function (req, res) {
   const { fullname, email, address, password, confirmPassword } = req.body;
-  
+
   // --- SỬA LỖI: Lấy token recaptcha từ body ---
   const recaptchaResponse = req.body['g-recaptcha-response'];
-  
+
   const errors = {};
   const old = { fullname, email, address };
   const recaptchaSiteKey = process.env.RECAPTCHA_SITE_KEY;
 
   // // --- BẮT ĐẦU XỬ LÝ RECAPTCHA ---
   if (!recaptchaResponse) {
-      errors.captcha = 'Please check the captcha box.';
+    errors.captcha = 'Please check the captcha box.';
   } else {
-      // Gọi Google API để verify
-      const secretKey = process.env.RECAPTCHA_SECRET;
-      const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${recaptchaResponse}`;
-      
-      try {
-          const response = await fetch(verifyUrl, { method: 'POST' });
-          const data = await response.json();
-          // data.success trả về true nếu verify thành công
-          if (!data.success) {
-               errors.captcha = 'Captcha verification failed. Please try again.';
-          }
-      } catch (err) {
-          console.error('Recaptcha error:', err);
-          errors.captcha = 'Error connecting to captcha server.';
+    // Gọi Google API để verify
+    const secretKey = process.env.RECAPTCHA_SECRET;
+    const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${recaptchaResponse}`;
+
+    try {
+      const response = await fetch(verifyUrl, { method: 'POST' });
+      const data = await response.json();
+      // data.success trả về true nếu verify thành công
+      if (!data.success) {
+        errors.captcha = 'Captcha verification failed. Please try again.';
       }
+    } catch (err) {
+      console.error('Recaptcha error:', err);
+      errors.captcha = 'Error connecting to captcha server.';
+    }
   }
   // --- KẾT THÚC XỬ LÝ RECAPTCHA ---
   if (!fullname) errors.fullname = 'Full name is required';
@@ -295,7 +296,7 @@ router.post('/signup', async function (req, res) {
 
   console.log('User id: ', newUser.id, ' OTP: ', otp);
 
-  await userModel.createOtp({
+  await userOtpsModel.createOtp({
     user_id: newUser.id,
     otp_code: otp,
     purpose: 'verify_email',
@@ -338,7 +339,7 @@ router.post('/verify-email', async (req, res) => {
     });
   }
 
-  const otpRecord = await userModel.findValidOtp({
+  const otpRecord = await userOtpsModel.findValidOtp({
     user_id: user.id,
     otp_code: otp,
     purpose: 'verify_email',
@@ -351,7 +352,7 @@ router.post('/verify-email', async (req, res) => {
     });
   }
 
-  await userModel.markOtpUsed(otpRecord.id);
+  await userOtpsModel.markOtpUsed(otpRecord.id);
   await userModel.verifyUserEmail(user.id);
 
   req.session.success_message =
@@ -380,7 +381,7 @@ router.post('/resend-otp', async (req, res) => {
   const otp = generateOtp();
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 phút
 
-  await userModel.createOtp({
+  await userOtpsModel.createOtp({
     user_id: user.id,
     otp_code: otp,
     purpose: 'verify_email',
@@ -480,7 +481,7 @@ router.put('/profile', isAuthenticated, async (req, res) => {
       address: address || currentUser.address,
       date_of_birth: date_of_birth ? new Date(date_of_birth) : currentUser.date_of_birth,
     };
-    
+
     // Chỉ cập nhật password cho non-OAuth users
     if (!currentUser.oauth_provider) {
       entity.password_hash = new_password
@@ -501,7 +502,7 @@ router.put('/profile', isAuthenticated, async (req, res) => {
     // 8. THÀNH CÔNG -> Redirect về trang profile kèm query success
     return res.redirect('/account/profile?success=true');
 
-  } 
+  }
   catch (err) {
     console.error(err);
     return res.render('vwAccount/profile', {
@@ -535,7 +536,7 @@ router.post('/request-upgrade', isAuthenticated, async (req, res) => {
 
   }
 });
-router.get('/watchlist', isAuthenticated ,async (req, res) => {
+router.get('/watchlist', isAuthenticated, async (req, res) => {
   const limit = 3;
   const page = parseInt(req.query.page) || 1;
   const offset = (page - 1) * limit;
@@ -563,7 +564,7 @@ router.get('/watchlist', isAuthenticated ,async (req, res) => {
 router.get('/bidding', isAuthenticated, async (req, res) => {
   const currentUserId = req.session.authUser.id;
   const biddingProducts = await autoBiddingModel.getBiddingProductsByBidderId(currentUserId);
-  
+
   res.render('vwAccount/bidding-products', {
     activeSection: 'bidding',
     products: biddingProducts
@@ -574,7 +575,7 @@ router.get('/bidding', isAuthenticated, async (req, res) => {
 router.get('/auctions', isAuthenticated, async (req, res) => {
   const currentUserId = req.session.authUser.id;
   const wonAuctions = await autoBiddingModel.getWonAuctionsByBidderId(currentUserId);
-  
+
   // Check if user has rated seller for each product
   for (let product of wonAuctions) {
     const review = await reviewModel.findByReviewerAndProduct(currentUserId, product.id);
@@ -587,7 +588,7 @@ router.get('/auctions', isAuthenticated, async (req, res) => {
       product.has_rated_seller = false;
     }
   }
-  
+
   res.render('vwAccount/won-auctions', {
     activeSection: 'auctions',
     products: wonAuctions
@@ -600,10 +601,10 @@ router.post('/won-auctions/:productId/rate-seller', isAuthenticated, async (req,
     const currentUserId = req.session.authUser.id;
     const productId = req.params.productId;
     const { seller_id, rating, comment } = req.body;
-    
+
     // Validate rating
     const ratingValue = rating === 'positive' ? 1 : -1;
-    
+
     // Check if already rated
     const existingReview = await reviewModel.findByReviewerAndProduct(currentUserId, productId);
     if (existingReview) {
@@ -622,7 +623,7 @@ router.post('/won-auctions/:productId/rate-seller', isAuthenticated, async (req,
         comment: comment || null
       });
     }
-    
+
     res.json({ success: true });
   } catch (error) {
     console.error('Error rating seller:', error);
@@ -636,15 +637,15 @@ router.put('/won-auctions/:productId/rate-seller', isAuthenticated, async (req, 
     const currentUserId = req.session.authUser.id;
     const productId = req.params.productId;
     const { rating, comment } = req.body;
-    
+
     const ratingValue = rating === 'positive' ? 1 : -1;
-    
+
     // Update review
     await reviewModel.updateByReviewerAndProduct(currentUserId, productId, {
       rating: ratingValue,
       comment: comment || null
     });
-    
+
     res.json({ success: true });
   } catch (error) {
     console.error('Error updating rating:', error);
