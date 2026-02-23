@@ -58,10 +58,10 @@ export function markUpgradePending(user_id) {
     .where('id', user_id)
     .update({ is_upgrade_pending: true });
 }
-export function updateUserRoleToSeller(user_id) {
+export function updateUserRole(user_id, role) {
   return db('users')
     .where('id', user_id)
-    .update({ role: 'seller', is_upgrade_pending: false });
+    .update({ role: role, is_upgrade_pending: false });
 }
 
 // ===================== OAUTH SUPPORT =====================
