@@ -1,7 +1,5 @@
 import db from '../utils/db.js';
 
-const TABLE = "users";
-
 export async function add(user) {
   // PostgreSQL
   const rows = await db('users')
@@ -41,7 +39,6 @@ export function findByEmail(email) {
   return db('users').where('email', email).first();
 }
 
-
 // Verify email user
 export function verifyUserEmail(user_id) {
   return db('users')
@@ -64,28 +61,6 @@ export function updateUserRole(user_id, role) {
     .update({ role: role, is_upgrade_pending: false });
 }
 
-// ===================== OAUTH SUPPORT =====================
-
-// Tìm user theo OAuth provider
-export function findByOAuthProvider(provider, oauth_id) {
-  return db('users')
-    .where({
-      oauth_provider: provider,
-      oauth_id: oauth_id
-    })
-    .first();
-}
-
-// Thêm OAuth provider cho user hiện có
-export function addOAuthProvider(user_id, provider, oauth_id) {
-  return db('users')
-    .where('id', user_id)
-    .update({
-      oauth_provider: provider,
-      oauth_id: oauth_id,
-      email_verified: true
-    });
-}
 export async function deleteUser(id) {
   return db('users')
     .where('id', id)

@@ -1,12 +1,10 @@
 import db from '../utils/db.js';
 
-const TABLE = "user_otps";
-
 // ===================== OTP USING KNEX =====================
 
 // Tạo OTP
 export function createOtp({ user_id, otp_code, purpose, expires_at }) {
-  return db(TABLE).insert({
+  return db('user_otps').insert({
     user_id,
     otp_code,
     purpose,
@@ -16,7 +14,7 @@ export function createOtp({ user_id, otp_code, purpose, expires_at }) {
 
 // Tìm OTP còn hiệu lực
 export function findValidOtp({ user_id, otp_code, purpose }) {
-  return db(TABLE)
+  return db('user_otps')
     .where({
       user_id,
       otp_code,
@@ -30,7 +28,7 @@ export function findValidOtp({ user_id, otp_code, purpose }) {
 
 // Đánh dấu OTP đã dùng
 export function markOtpUsed(id) {
-  return db(TABLE)
+  return db('user_otps')
     .where('id', id)
     .update({ used: true });
 }

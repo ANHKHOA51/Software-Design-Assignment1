@@ -4,6 +4,7 @@ import { Strategy as FacebookStrategy } from 'passport-facebook';
 import { Strategy as TwitterStrategy } from 'passport-twitter';
 import { Strategy as GitHubStrategy } from 'passport-github2';
 import * as userModel from '../models/user.model.js';
+import * as oauthModel from '../models/oauth.model.js'
 
 // Serialize user vào session
 passport.serializeUser((user, done) => {
@@ -26,44 +27,44 @@ passport.use(new GoogleStrategy({
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
   callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3005/account/auth/google/callback'
 },
-async (accessToken, refreshToken, profile, done) => {
-  try {
-    // Kiểm tra xem user đã tồn tại chưa
-    let user = await userModel.findByOAuthProvider('google', profile.id);
-    
-    if (user) {
-      // User đã tồn tại, đăng nhập
-      return done(null, user);
-    }
-    
-    // Kiểm tra email đã tồn tại chưa
-    const email = profile.emails && profile.emails[0] ? profile.emails[0].value : null;
-    if (email) {
-      user = await userModel.findByEmail(email);
+  async (accessToken, refreshToken, profile, done) => {
+    try {
+      // Kiểm tra xem user đã tồn tại chưa
+      let user = await oauthModel.findByOAuthProvider('google', profile.id);
+
       if (user) {
-        // Cập nhật OAuth provider cho user hiện có
-        await userModel.addOAuthProvider(user.id, 'google', profile.id);
+        // User đã tồn tại, đăng nhập
         return done(null, user);
       }
+
+      // Kiểm tra email đã tồn tại chưa
+      const email = profile.emails && profile.emails[0] ? profile.emails[0].value : null;
+      if (email) {
+        user = await userModel.findByEmail(email);
+        if (user) {
+          // Cập nhật OAuth provider cho user hiện có
+          await oauthModel.addOAuthProvider(user.id, 'google', profile.id);
+          return done(null, user);
+        }
+      }
+
+      // Tạo user mới
+      const newUser = await userModel.add({
+        email: email,
+        fullname: profile.displayName || 'Google User',
+        password_hash: null, // OAuth users không cần password
+        address: '', // OAuth users chưa có address
+        role: 'bidder',
+        email_verified: true, // OAuth users đã verify email
+        oauth_provider: 'google',
+        oauth_id: profile.id
+      });
+
+      done(null, newUser);
+    } catch (error) {
+      done(error, null);
     }
-    
-    // Tạo user mới
-    const newUser = await userModel.add({
-      email: email,
-      fullname: profile.displayName || 'Google User',
-      password_hash: null, // OAuth users không cần password
-      address: '', // OAuth users chưa có address
-      role: 'bidder',
-      email_verified: true, // OAuth users đã verify email
-      oauth_provider: 'google',
-      oauth_id: profile.id
-    });
-    
-    done(null, newUser);
-  } catch (error) {
-    done(error, null);
-  }
-}));
+  }));
 
 // ===================== FACEBOOK STRATEGY =====================
 passport.use(new FacebookStrategy({
@@ -73,38 +74,38 @@ passport.use(new FacebookStrategy({
   profileFields: ['id', 'displayName', 'name', 'emails'],
   enableProof: true
 },
-async (accessToken, refreshToken, profile, done) => {
-  try {
-    let user = await userModel.findByOAuthProvider('facebook', profile.id);
-    
-    if (user) {
-      return done(null, user);
-    }
-    
-    const email = profile.emails && profile.emails[0] ? profile.emails[0].value : null;
-    if (email) {
-      user = await userModel.findByEmail(email);
+  async (accessToken, refreshToken, profile, done) => {
+    try {
+      let user = await oauthModel.findByOAuthProvider('facebook', profile.id);
+
       if (user) {
-        await userModel.addOAuthProvider(user.id, 'facebook', profile.id);
         return done(null, user);
       }
+
+      const email = profile.emails && profile.emails[0] ? profile.emails[0].value : null;
+      if (email) {
+        user = await userModel.findByEmail(email);
+        if (user) {
+          await oauthModel.addOAuthProvider(user.id, 'facebook', profile.id);
+          return done(null, user);
+        }
+      }
+
+      const newUser = await userModel.add({
+        email: email || `facebook_${profile.id}@oauth.local`,
+        fullname: profile.displayName || 'Facebook User',
+        password_hash: null, // OAuth users không cần password 
+        address: '',
+        role: 'bidder',
+        email_verified: true,
+        oauth_provider: 'facebook',
+        oauth_id: profile.id
+      });
+      done(null, newUser);
+    } catch (error) {
+      done(error, null);
     }
-    
-    const newUser = await userModel.add({
-      email: email || `facebook_${profile.id}@oauth.local`,
-      fullname: profile.displayName || 'Facebook User',
-      password_hash: null, // OAuth users không cần password 
-      address: '',      
-      role: 'bidder',    
-      email_verified: true,
-      oauth_provider: 'facebook',
-      oauth_id: profile.id
-    });
-    done(null, newUser);
-  } catch (error) {
-    done(error, null);
-  }
-}));
+  }));
 
 // ===================== TWITTER STRATEGY =====================
 // DISABLED: Twitter API requires paid subscription ($100/month) for OAuth
@@ -118,7 +119,7 @@ passport.use(new TwitterStrategy({
 },
 async (token, tokenSecret, profile, done) => {
   try {
-    let user = await userModel.findByOAuthProvider('twitter', profile.id);
+    let user = await oauthModel.findByOAuthProvider('twitter', profile.id);
     
     if (user) {
       return done(null, user);
@@ -128,7 +129,7 @@ async (token, tokenSecret, profile, done) => {
     if (email) {
       user = await userModel.findByEmail(email);
       if (user) {
-        await userModel.addOAuthProvider(user.id, 'twitter', profile.id);
+        await oauthModel.addOAuthProvider(user.id, 'twitter', profile.id);
         return done(null, user);
       }
     }
@@ -155,36 +156,36 @@ passport.use(new GitHubStrategy({
   clientSecret: process.env.GITHUB_CLIENT_SECRET,
   callbackURL: process.env.GITHUB_CALLBACK_URL || 'http://localhost:3005/account/auth/github/callback'
 },
-async (accessToken, refreshToken, profile, done) => {
-  try {
-    let user = await userModel.findByOAuthProvider('github', profile.id);
-    
-    if (user) {
-      return done(null, user);
-    }
-    
-    const email = profile.emails && profile.emails[0] ? profile.emails[0].value : null;
-    if (email) {
-      user = await userModel.findByEmail(email);
+  async (accessToken, refreshToken, profile, done) => {
+    try {
+      let user = await oauthModel.findByOAuthProvider('github', profile.id);
+
       if (user) {
-        await userModel.addOAuthProvider(user.id, 'github', profile.id);
         return done(null, user);
       }
+
+      const email = profile.emails && profile.emails[0] ? profile.emails[0].value : null;
+      if (email) {
+        user = await userModel.findByEmail(email);
+        if (user) {
+          await oauthModel.addOAuthProvider(user.id, 'github', profile.id);
+          return done(null, user);
+        }
+      }
+
+      const newUser = await userModel.add({
+        email: email || `github_${profile.id}@oauth.local`,
+        fullname: profile.displayName || profile.username || 'GitHub User',
+        password_hash: null, address: '', role: 'bidder',
+        email_verified: true,
+        oauth_provider: 'github',
+        oauth_id: profile.id
+      });
+
+      done(null, newUser);
+    } catch (error) {
+      done(error, null);
     }
-    
-    const newUser = await userModel.add({
-      email: email || `github_${profile.id}@oauth.local`,
-      fullname: profile.displayName || profile.username || 'GitHub User',
-      password_hash: null,      address: '',      role: 'bidder',
-      email_verified: true,
-      oauth_provider: 'github',
-      oauth_id: profile.id
-    });
-    
-    done(null, newUser);
-  } catch (error) {
-    done(error, null);
-  }
-}));
+  }));
 
 export default passport;
