@@ -102,10 +102,18 @@
 {{#section "js"}}
 <script>
   // Gallery Carousel Navigation - Chuyển ảnh chính
+  function getNextIdx(curIdx, len) {
+    return (curIdx + 1) % len;
+  }
+
+  function getPrevIdx(curIdx, len) {
+    return (curIdx - 1 + len) % len;
+  }
+
   function galleryNext() {
     const thumbnails = document.querySelectorAll('.gallery-thumb');
     if (thumbnails.length > 0) {
-      const nextIndex = (currentImageIndex + 1) % thumbnails.length;
+      const nextIndex = getNextIdx(currentImageIndex, thumbnails.length);
       thumbnails[nextIndex].click();
     }
   }
@@ -113,7 +121,7 @@
   function galleryPrev() {
     const thumbnails = document.querySelectorAll('.gallery-thumb');
     if (thumbnails.length > 0) {
-      const prevIndex = (currentImageIndex - 1 + thumbnails.length) % thumbnails.length;
+      const prevIndex = getPrevIdx(currentImageIndex, thumbnails.length);
       thumbnails[prevIndex].click();
     }
   }
@@ -163,13 +171,13 @@
   }
 
   function nextImage() {
-    currentImageIndex = (currentImageIndex + 1) % galleryImages.length;
+    currentImageIndex = getNextIdx(currentImageIndex, galleryImages.length);
     document.getElementById('lightboxImage').src = galleryImages[currentImageIndex];
     document.getElementById('currentImageNum').textContent = currentImageIndex + 1;
   }
 
   function prevImage() {
-    currentImageIndex = (currentImageIndex - 1 + galleryImages.length) % galleryImages.length;
+    currentImageIndex = getPrevIdx(currentImageIndex, galleryImages.length);
     document.getElementById('lightboxImage').src = galleryImages[currentImageIndex];
     document.getElementById('currentImageNum').textContent = currentImageIndex + 1;
   }
@@ -194,28 +202,24 @@
     }
   });
 
-  // Toggle Description Section
-  function toggleDescription() {
-    const descContent = document.getElementById('descriptionContent');
-    const descToggle = document.getElementById('descriptionToggle');
-    const isHidden = descContent.style.display === 'none';
+  function toggleContent(contentId, toggleId) {
+    const content = document.getElementById(contentId);
+    const toggle = document.getElementById(toggleId);
+    const isHidden = content.style.display === 'none';
 
-    descContent.style.display = isHidden ? 'block' : 'none';
-    descToggle.innerHTML = isHidden
+    content.style.display = isHidden ? 'block' : 'none';
+    toggle.innerHTML = isHidden
       ? '<i class="bi bi-chevron-up"></i>'
       : '<i class="bi bi-chevron-down"></i>';
+  }
+  // Toggle Description Section
+  function toggleDescription() {
+    toggleContent('descriptionContent', 'descriptionToggle');
   }
 
   // Toggle Details Section
   function toggleDetails() {
-    const detailsContent = document.getElementById('detailsContent');
-    const detailsToggle = document.getElementById('detailsToggle');
-    const isHidden = detailsContent.style.display === 'none';
-
-    detailsContent.style.display = isHidden ? 'block' : 'none';
-    detailsToggle.innerHTML = isHidden
-      ? '<i class="bi bi-chevron-up"></i>'
-      : '<i class="bi bi-chevron-down"></i>';
+    toggleContent('detailsContent', 'detailsToggle');
   }
 
   // ==================== BID FUNCTIONALITY ====================
@@ -299,57 +303,54 @@
     }, 100);
   }
 
-  // Handle increase bid button
-  const increaseBtn = document.getElementById('increaseBid');
-  increaseBtn?.addEventListener('mousedown', startPressIncrease);
-  increaseBtn?.addEventListener('mouseup', function() {
-    stopPress();
-    if (!isLongPress) {
-      adjustBid(minIncrement);
+  // Handle increase/decrease bid button
+  function handleBidButton(buttonId, isDecreasing) {
+    let adjustAmount = minIncrement;
+    let startPressHandler;
+    if (isDecreasing) {
+      adjustAmount = -adjustAmount;
+      startPressHandler = startPressDecrease;
     }
-  });
-  increaseBtn?.addEventListener('mouseleave', stopPress);
-  increaseBtn?.addEventListener('touchstart', startPressIncrease);
-  increaseBtn?.addEventListener('touchend', function() {
-    stopPress();
-    if (!isLongPress) {
-      adjustBid(minIncrement);
+    else {
+      startPressHandler = startPressIncrease;
     }
-  });
 
-  // Handle decrease bid button
-  const decreaseBtn = document.getElementById('decreaseBid');
-  decreaseBtn?.addEventListener('mousedown', startPressDecrease);
-  decreaseBtn?.addEventListener('mouseup', function() {
-    stopPress();
-    if (!isLongPress) {
-      adjustBid(-minIncrement);
-    }
-  });
-  decreaseBtn?.addEventListener('mouseleave', stopPress);
-  decreaseBtn?.addEventListener('touchstart', startPressDecrease);
-  decreaseBtn?.addEventListener('touchend', function() {
-    stopPress();
-    if (!isLongPress) {
-      adjustBid(-minIncrement);
-    }
-  });
+    const bidBtn = document.getElementById(buttonId);
+    bidBtn?.addEventListener('mousedown', startPressHandler);
+    bidBtn?.addEventListener('mouseup', function() {
+      stopPress();
+      if (!isLongPress) {
+        adjustBid(adjustAmount);
+      }
+    });
+    bidBtn?.addEventListener('mouseleave', stopPress);
+    bidBtn?.addEventListener('touchstart', startPressHandler);
+    bidBtn?.addEventListener('touchend', function() {
+      stopPress();
+      if (!isLongPress) {
+        adjustBid(adjustAmount);
+      }
+    });
+  }
+
+  handleBidButton('increaseBid', false);
+  handleBidButton('decreaseBid', true);
   
   // Handle quick increment buttons
-  document.querySelectorAll('.quick-increment').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const multiplier = parseInt(this.getAttribute('data-multiplier'));
-      adjustBid(minIncrement * multiplier);
+  function handleQuickBid(btnId, isDecreasing) {
+    document.querySelectorAll(btnId).forEach(btn => {
+      btn.addEventListener('click', function() {
+        const multiplier = parseInt(this.getAttribute('data-multiplier'));
+        if (isDecreasing)
+          adjustBid(-minIncrement * multiplier);
+        else 
+          adjustBid(minIncrement * multiplier);
+      });
     });
-  });
-  
-  // Handle quick decrement buttons
-  document.querySelectorAll('.quick-decrement').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const multiplier = parseInt(this.getAttribute('data-multiplier'));
-      adjustBid(-minIncrement * multiplier);
-    });
-  });
+  }
+
+  handleQuickBid('.quick-increment', false);
+  handleQuickBid('.quick-decrement', true);
 
   // Format bid input on user input (keep for manual typing if needed)
   document.getElementById('bidAmount')?.addEventListener('input', function (e) {
@@ -683,6 +684,10 @@
 
   // ==================== SMART COUNTDOWN FUNCTIONALITY ====================
   let countdownEnded = false; // Flag to prevent multiple reloads
+  const ms_per_sec = 1000;
+  const ms_per_min = ms_per_sec * 60;
+  const ms_per_hour = ms_per_min * 60;
+  const ms_per_day = ms_per_hour * 24;
   
   function updateSmartCountdown() {
     const countdownElement = document.querySelector('.countdown-timer');
@@ -707,7 +712,7 @@
       return;
     }
     
-    const THREE_DAYS_IN_MS = 3 * 24 * 60 * 60 * 1000;
+    const THREE_DAYS_IN_MS = 3 * ms_per_hour;
     
     // If more than 3 days, show end date/time only
     if (timeLeft > THREE_DAYS_IN_MS) {
@@ -737,10 +742,11 @@
       }
     } else {
       // 3 days or less: show real-time countdown
-      const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+      // Calculate time units
+      const days = Math.floor(timeLeft / ms_per_day);
+      const hours = Math.floor((timeLeft % ms_per_day) / ms_per_hour);
+      const minutes = Math.floor((timeLeft % ms_per_hour) / ms_per_min);
+      const seconds = Math.floor((timeLeft % ms_per_min) / ms_per_sec);
       
       let timeString = '';
       if (days > 0) {

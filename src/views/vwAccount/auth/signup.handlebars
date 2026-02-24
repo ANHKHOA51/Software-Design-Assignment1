@@ -2,6 +2,9 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 <script>
+    function showError(err_msg) {
+      Swal.fire({ icon: 'error', title: 'Error', text: err_msg });
+    }
     document.getElementById("formSignup").addEventListener("submit", function(event) {
         event.preventDefault();
         
@@ -14,37 +17,37 @@
         
         // 1. Validate Full Name
         if (fullname === "") {
-             Swal.fire({ icon: 'error', title: 'Error', text: 'Full name is required.' });
+             showError('Full name is required.');
              return;
         }
 
         // 2. Validate Address
         if (address === "") {
-             Swal.fire({ icon: 'error', title: 'Error', text: 'Address is required.' });
+             showError('Address is required.');
              return;
         }
 
         // 3. Validate Email
         if (email === "") {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Email is required.' });
+            showError('Email is required.');
             return;
         }
         // Có thể thêm regex check email format ở đây nếu muốn kỹ hơn
 
         // 4. Validate Password
         if (password === "") {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Password is required.' });
+            showError('Password is required.');
             return;
         }
     
 
         if (confirmPassword === "") {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Confirm password is required.' });
+            showError('Confirm password is required.');
             return;
         }
 
         if (password !== confirmPassword) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Passwords do not match.' });
+            showError('Passwords do not match.');
             return;
         }
 
