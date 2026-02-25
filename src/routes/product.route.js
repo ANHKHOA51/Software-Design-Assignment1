@@ -13,6 +13,7 @@ import * as rejectedBidderModel from '../models/rejectedBidder.model.js';
 import * as orderModel from '../models/order.model.js';
 import * as invoiceModel from '../models/invoice.model.js';
 import * as orderChatModel from '../models/orderChat.model.js';
+import * as fileService from '../utils/fileService.js';
 import { isAuthenticated } from '../middlewares/auth.mdw.js';
 import { sendMail } from '../utils/mailer.js';
 import db from '../utils/db.js';
@@ -1131,12 +1132,15 @@ router.post('/order/:orderId/submit-payment', isAuthenticated, async (req, res) 
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
+    // Move files from uploads/ to images/payment_proofs/
+    const permanentUrls = fileService.moveUploadedFiles(payment_proof_urls, 'payment_proofs');
+
     // Create payment invoice
     await invoiceModel.createPaymentInvoice({
       order_id: orderId,
       issuer_id: userId,
       payment_method,
-      payment_proof_urls,
+      permanentUrls,
       note
     });
 
@@ -1196,13 +1200,15 @@ router.post('/order/:orderId/submit-shipping', isAuthenticated, async (req, res)
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
+    // Move files from uploads/ to images/shipping_proofs/
+    const permanentUrls = fileService.moveUploadedFiles(shipping_proof_urls, 'shipping_proofs');
     // Create shipping invoice
     await invoiceModel.createShippingInvoice({
       order_id: orderId,
       issuer_id: userId,
       tracking_number,
       shipping_provider,
-      shipping_proof_urls,
+      permanentUrls,
       note
     });
 
