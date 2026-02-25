@@ -2,7 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import passport from '../utils/passport.js';
 import * as userModel from '../models/user.model.js';
-import * as userOtpsModel from '../models/user_otps.model.js';
+import * as userOtpsModel from '../models/userOtps.model.js';
 import * as upgradeRequestModel from '../models/upgradeRequest.model.js';
 import * as watchlistModel from '../models/watchlist.model.js';
 import * as reviewModel from '../models/review.model.js';
