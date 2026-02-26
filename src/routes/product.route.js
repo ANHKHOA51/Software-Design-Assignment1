@@ -14,6 +14,7 @@ import * as orderModel from '../models/order.model.js';
 import * as invoiceModel from '../models/invoice.model.js';
 import * as orderChatModel from '../models/orderChat.model.js';
 import * as fileService from '../utils/fileService.js';
+import * as orderService from '../services/order.service.js';
 import { isAuthenticated } from '../middlewares/auth.mdw.js';
 import { sendMail } from '../utils/mailer.js';
 import db from '../utils/db.js';
@@ -1150,7 +1151,7 @@ router.post('/order/:orderId/submit-payment', isAuthenticated, async (req, res) 
       shipping_phone
     });
 
-    await orderModel.updateStatus(orderId, 'payment_submitted', userId);
+    await orderService.updateStatus(orderId, 'payment_submitted', userId);
 
     res.json({ success: true, message: 'Payment submitted successfully' });
   } catch (error) {
@@ -1178,7 +1179,7 @@ router.post('/order/:orderId/confirm-payment', isAuthenticated, async (req, res)
     }
 
     await invoiceModel.verifyInvoice(paymentInvoice.id);
-    await orderModel.updateStatus(orderId, 'payment_confirmed', userId);
+    await orderService.updateStatus(orderId, 'payment_confirmed', userId);
 
     res.json({ success: true, message: 'Payment confirmed successfully' });
   } catch (error) {
@@ -1212,7 +1213,7 @@ router.post('/order/:orderId/submit-shipping', isAuthenticated, async (req, res)
       note
     });
 
-    await orderModel.updateStatus(orderId, 'shipped', userId);
+    await orderService.updateStatus(orderId, 'shipped', userId);
 
     res.json({ success: true, message: 'Shipping info submitted successfully' });
   } catch (error) {
@@ -1233,7 +1234,7 @@ router.post('/order/:orderId/confirm-delivery', isAuthenticated, async (req, res
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
-    await orderModel.updateStatus(orderId, 'delivered', userId);
+    await orderService.updateStatus(orderId, 'delivered', userId);
 
     res.json({ success: true, message: 'Delivery confirmed successfully' });
   } catch (error) {
@@ -1289,7 +1290,7 @@ router.post('/order/:orderId/submit-rating', isAuthenticated, async (req, res) =
 
     if (buyerReview && sellerReview) {
       // Both completed, mark order as completed
-      await orderModel.updateStatus(orderId, 'completed', userId);
+      await orderService.updateStatus(orderId, 'completed', userId);
 
       // Update product as sold and set closed_at to payment completion time
       await db('products').where('id', order.product_id).update({
@@ -1341,7 +1342,7 @@ router.post('/order/:orderId/complete-transaction', isAuthenticated, async (req,
 
     if (buyerReview && sellerReview) {
       // Both completed, mark order as completed
-      await orderModel.updateStatus(orderId, 'completed', userId);
+      await orderService.updateStatus(orderId, 'completed', userId);
 
       // Update product as sold and set closed_at to payment completion time
       await db('products').where('id', order.product_id).update({
