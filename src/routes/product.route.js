@@ -15,6 +15,7 @@ import * as invoiceModel from '../models/invoice.model.js';
 import * as orderChatModel from '../models/orderChat.model.js';
 import * as fileService from '../utils/fileService.js';
 import * as orderService from '../services/order.service.js';
+import * as productService from '../services/product.service.js';
 import { isAuthenticated } from '../middlewares/auth.mdw.js';
 import { sendMail } from '../utils/mailer.js';
 import db from '../utils/db.js';
@@ -117,7 +118,7 @@ router.get('/search', async (req, res) => {
   const keywords = q.trim();
 
   // Search in both product name and category
-  const list = await productModel.searchPageByKeywords(keywords, limit, offset, userId, logic, sort);
+  const list = await productService.searchPageByKeywords(keywords, limit, offset, userId, logic, sort);
   const products = await prepareProductList(list);
   const total = await productModel.countByKeywords(keywords, logic);
   const totalCount = parseInt(total.count) || 0;

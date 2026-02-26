@@ -76,13 +76,7 @@ export function findPage(limit, offset) {
 }
 
 // 1. Hàm tìm kiếm phân trang (Simplified FTS - Search in product name and category)
-export function searchPageByKeywords(keywords, limit, offset, userId, logic = 'or', sort = '') {
-  // Remove accents from keywords for search
-  const searchQuery = keywords.toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
-    .replace(/đ/g, 'd').replace(/Đ/g, 'D'); // Vietnamese d
-
+export function searchPageByKeywords(searchQuery, userId) {
   let query = db('products')
     .leftJoin('categories', 'products.category_id', 'categories.id')
     .leftJoin('categories as parent_category', 'categories.parent_id', 'parent_category.id')
@@ -94,29 +88,6 @@ export function searchPageByKeywords(keywords, limit, offset, userId, logic = 'o
     // Chỉ hiển thị sản phẩm ACTIVE
     .where('products.end_at', '>', new Date())
     .whereNull('products.closed_at')
-    .where((builder) => {
-      const words = searchQuery.split(/\s+/).filter(w => w.length > 0);
-      if (logic === 'and') {
-        // AND logic: all keywords must match
-        // Split words and each word must exist in product name OR category name OR parent category name
-        words.forEach(word => {
-          builder.where(function () {
-            this.whereRaw(`LOWER(remove_accents(products.name)) LIKE ?`, [`%${word}%`])
-              .orWhereRaw(`LOWER(remove_accents(categories.name)) LIKE ?`, [`%${word}%`])
-              .orWhereRaw(`LOWER(remove_accents(parent_category.name)) LIKE ?`, [`%${word}%`]);
-          });
-        });
-      } else {
-        // OR logic: any keyword can match in product name OR category name OR parent category name
-        words.forEach(word => {
-          builder.orWhere(function () {
-            this.whereRaw(`LOWER(remove_accents(products.name)) LIKE ?`, [`%${word}%`])
-              .orWhereRaw(`LOWER(remove_accents(categories.name)) LIKE ?`, [`%${word}%`])
-              .orWhereRaw(`LOWER(remove_accents(parent_category.name)) LIKE ?`, [`%${word}%`]);
-          });
-        });
-      }
-    })
     .select(
       'products.*',
       'categories.name as category_name',
@@ -131,21 +102,7 @@ export function searchPageByKeywords(keywords, limit, offset, userId, logic = 'o
       db.raw('watchlists.product_id IS NOT NULL AS is_favorite')
     );
 
-  // Apply sorting
-  if (sort === 'price_asc') {
-    query = query.orderBy('products.current_price', 'asc');
-  } else if (sort === 'price_desc') {
-    query = query.orderBy('products.current_price', 'desc');
-  } else if (sort === 'newest') {
-    query = query.orderBy('products.created_at', 'desc');
-  } else if (sort === 'oldest') {
-    query = query.orderBy('products.created_at', 'asc');
-  } else {
-    // Default: sort by end_at ascending (ending soonest first)
-    query = query.orderBy('products.end_at', 'asc');
-  }
-
-  return query.limit(limit).offset(offset);
+  return query;
 }
 
 // 2. Hàm đếm tổng số lượng (Simplified)
