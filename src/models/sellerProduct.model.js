@@ -207,3 +207,22 @@ export function findExpiredProductsBySellerId(sellerId) {
       `)
     );
 }
+
+export async function cancelProduct(productId, sellerId) {
+  // Cancel any active orders for this product
+  const activeOrders = await db('orders')
+    .where('product_id', productId)
+    .whereNotIn('status', ['completed', 'cancelled']);
+
+  // Cancel all active orders
+  for (let order of activeOrders) {
+    await db('orders')
+      .where('id', order.id)
+      .update({
+        status: 'cancelled',
+        cancelled_by: sellerId,
+        cancellation_reason: 'Seller cancelled the product',
+        cancelled_at: new Date()
+      });
+  }
+}

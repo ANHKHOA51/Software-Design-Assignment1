@@ -1,4 +1,5 @@
 import * as productModel from '../models/product.model.js';
+import * as sellerProductModel from '../models/sellerProduct.model.js';
 
 export async function findByProductIdForAdmin(productId, userId) {
   const rows = await productModel.findByProductIdForAdmin(productId, userId);
@@ -7,7 +8,6 @@ export async function findByProductIdForAdmin(productId, userId) {
 }
 
 export async function findByProductId2(productId, userId) {
-  console.log("DEBUG: findByProductId2");
   const rows = await productModel.findByProductId2(productId, userId);
 
   return mapProductRows(rows);
@@ -119,3 +119,27 @@ function applySorting(query, sort) {
     query = query.orderBy('products.end_at', 'asc');
   }
 }
+
+export async function cancelProduct(productId, sellerId) {
+  // Get product to verify seller
+  const product = await productModel.findById(productId);
+
+  if (!product) {
+    throw new Error('Product not found');
+  }
+
+  if (product.seller_id !== sellerId) {
+    throw new Error('Unauthorized');
+  }
+
+  await sellerProductModel.cancelProduct(productId, sellerId);
+
+  // Update product - mark as cancelled
+  await productModel.updateProduct(productId, {
+    is_sold: false,
+    closed_at: new Date()
+  });
+
+  // Return product data for route to use
+  return product;
+} 

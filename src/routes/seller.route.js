@@ -5,6 +5,7 @@ import * as productDescUpdateModel from '../models/productDescriptionUpdate.mode
 import * as biddingHistoryModel from '../models/biddingHistory.model.js';
 import * as productCommentModel from '../models/productComment.model.js';
 import * as productService from '../services/product.service.js';
+import * as sellerProductModel from '../models/sellerProduct.model.js'
 import { sendMail } from '../utils/mailer.js';
 import multer from 'multer';
 import path from 'path';
@@ -14,21 +15,21 @@ const router = express.Router();
 
 router.get('/', async function (req, res) {
     const sellerId = req.session.authUser.id;
-    const stats = await productModel.getSellerStats(sellerId);
+    const stats = await sellerProductModel.getSellerStats(sellerId);
     res.render('vwSeller/dashboard', { stats });
 });
 
 // All Products - View only
 router.get('/products', async function (req, res) {
     const sellerId = req.session.authUser.id;
-    const products = await productModel.findAllProductsBySellerId(sellerId);
+    const products = await sellerProductModel.findAllProductsBySellerId(sellerId);
     res.render('vwSeller/all-products', { products });
 });
 
 // Active Products - CRUD
 router.get('/products/active', async function (req, res) {
     const sellerId = req.session.authUser.id;
-    const products = await productModel.findActiveProductsBySellerId(sellerId);
+    const products = await sellerProductModel.findActiveProductsBySellerId(sellerId);
     res.render('vwSeller/active', { products });
 });
 
@@ -36,7 +37,7 @@ router.get('/products/active', async function (req, res) {
 router.get('/products/pending', async function (req, res) {
     const sellerId = req.session.authUser.id;
     const [products, stats] = await Promise.all([
-        productModel.findPendingProductsBySellerId(sellerId),
+        sellerProductModel.findPendingProductsBySellerId(sellerId),
         productModel.getPendingProductsStats(sellerId)
     ]);
 
@@ -53,7 +54,7 @@ router.get('/products/pending', async function (req, res) {
 router.get('/products/sold', async function (req, res) {
     const sellerId = req.session.authUser.id;
     const [products, stats] = await Promise.all([
-        productModel.findSoldProductsBySellerId(sellerId),
+        sellerProductModel.findSoldProductsBySellerId(sellerId),
         productModel.getSoldProductsStats(sellerId)
     ]);
 
@@ -78,7 +79,7 @@ router.get('/products/sold', async function (req, res) {
 // Expired Products - No bidder or cancelled
 router.get('/products/expired', async function (req, res) {
     const sellerId = req.session.authUser.id;
-    const products = await productModel.findExpiredProductsBySellerId(sellerId);
+    const products = await sellerProductModel.findExpiredProductsBySellerId(sellerId);
 
     // Add review info for cancelled products with bidders
     for (let product of products) {
@@ -203,7 +204,7 @@ router.post('/products/:id/cancel', async function (req, res) {
         const { reason, highest_bidder_id } = req.body;
 
         // Cancel product
-        const product = await productModel.cancelProduct(productId, sellerId);
+        const product = await productService.cancelProduct(productId, sellerId);
 
         // Create review if there's a bidder
         if (highest_bidder_id) {

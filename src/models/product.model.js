@@ -162,25 +162,6 @@ export function findByCategoryId(categoryId, currentUserId) {
       db.raw('watchlists.product_id IS NOT NULL AS is_favorite')
       // --------------------------
     )
-  // .modify((queryBuilder) => {
-  //   if (sort === 'price_asc') {
-  //     queryBuilder.orderBy('products.current_price', 'asc');
-  //   }
-  //   else if (sort === 'price_desc') {
-  //     queryBuilder.orderBy('products.current_price', 'desc');
-  //   }
-  //   else if (sort === 'newest') {
-  //     queryBuilder.orderBy('products.created_at', 'desc');
-  //   }
-  //   else if (sort === 'oldest') {
-  //     queryBuilder.orderBy('products.created_at', 'asc');
-  //   }
-  //   else {
-  //     queryBuilder.orderBy('products.created_at', 'desc');
-  //   }
-  // })
-  // .limit(limit)
-  // .offset(offset);
 }
 
 export function countByCategoryId(categoryId) {
@@ -448,45 +429,10 @@ export async function getPendingProductsStats(sellerId) {
   };
 }
 
-export async function cancelProduct(productId, sellerId) {
-  // Get product to verify seller
-  const product = await db('products')
+export function findById(productId) {
+  return db('products')
     .where('id', productId)
     .first();
-
-  if (!product) {
-    throw new Error('Product not found');
-  }
-
-  if (product.seller_id !== sellerId) {
-    throw new Error('Unauthorized');
-  }
-
-  // Cancel any active orders for this product
-  const activeOrders = await db('orders')
-    .where('product_id', productId)
-    .whereNotIn('status', ['completed', 'cancelled']);
-
-  // Cancel all active orders
-  for (let order of activeOrders) {
-    await db('orders')
-      .where('id', order.id)
-      .update({
-        status: 'cancelled',
-        cancelled_by: sellerId,
-        cancellation_reason: 'Seller cancelled the product',
-        cancelled_at: new Date()
-      });
-  }
-
-  // Update product - mark as cancelled
-  await updateProduct(productId, {
-    is_sold: false,
-    closed_at: new Date()
-  });
-
-  // Return product data for route to use
-  return product;
 }
 
 /**

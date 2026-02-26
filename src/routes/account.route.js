@@ -7,6 +7,7 @@ import * as upgradeRequestModel from '../models/upgradeRequest.model.js';
 import * as watchlistModel from '../models/watchlist.model.js';
 import * as reviewModel from '../models/review.model.js';
 import * as autoBiddingModel from '../models/autoBidding.model.js';
+import * as bidderProductModel from '../models/bidderProduct.model.js';
 import * as productModel from '../models/product.model.js';
 import { isAuthenticated } from '../middlewares/auth.mdw.js';
 import { sendMail } from '../utils/mailer.js';
@@ -564,7 +565,7 @@ router.get('/watchlist', isAuthenticated, async (req, res) => {
 // Bidding Products - Sản phẩm đang tham gia đấu giá
 router.get('/bidding', isAuthenticated, async (req, res) => {
   const currentUserId = req.session.authUser.id;
-  const biddingProducts = await productModel.getBiddingProductsByBidderId(currentUserId);
+  const biddingProducts = await bidderProductModel.getBiddingProductsByBidderId(currentUserId);
 
   res.render('vwAccount/bidding-products', {
     activeSection: 'bidding',
@@ -575,7 +576,7 @@ router.get('/bidding', isAuthenticated, async (req, res) => {
 // Won Auctions - Sản phẩm đã thắng (pending, sold, cancelled)
 router.get('/auctions', isAuthenticated, async (req, res) => {
   const currentUserId = req.session.authUser.id;
-  const wonAuctions = await productModel.getWonAuctionsByBidderId(currentUserId);
+  const wonAuctions = await bidderProductModel.getWonAuctionsByBidderId(currentUserId);
 
   // Check if user has rated seller for each product
   for (let product of wonAuctions) {
