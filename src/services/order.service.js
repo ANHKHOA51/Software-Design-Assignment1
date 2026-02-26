@@ -2,8 +2,6 @@ import db from '../utils/db.js';
 import * as orderModel from '../models/order.model.js';
 
 export async function updateStatus(orderId, newStatus, userId, note = null) {
-  console.log("DEBUG: function orderService.updateStatus");
-
   const trx = await db.transaction();
 
   try {

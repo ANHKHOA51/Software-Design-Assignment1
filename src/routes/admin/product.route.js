@@ -1,6 +1,7 @@
 import express from 'express';
 import * as productModel from '../../models/product.model.js';
 import * as userModel from '../../models/user.model.js';
+import * as productService from '../../services/product.service.js';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -22,7 +23,7 @@ router.get('/list', async (req, res) => {
         highest_bidder_name: p.highest_bidder_name
     }));
     res.render('vwAdmin/product/list', {
-        products : filteredProducts,
+        products: filteredProducts,
         empty: products.length === 0,
         success_message,
         error_message
@@ -37,7 +38,7 @@ router.get('/add', async (req, res) => {
         res.render('vwAdmin/product/add', { sellers });
     } catch (error) {
         console.error('Error loading sellers:', error);
-        res.render('vwAdmin/product/add', { 
+        res.render('vwAdmin/product/add', {
             sellers: [],
             error_message: 'Failed to load sellers list'
         });
@@ -97,22 +98,22 @@ router.post('/add', async function (req, res) {
 });
 router.get('/detail/:id', async (req, res) => {
     const id = req.params.id;
-    const product = await productModel.findByProductIdForAdmin(id);
+    const product = await productService.findByProductIdForAdmin(id);
     // console.log(product);
     const success_message = req.session.success_message;
     const error_message = req.session.error_message;
     delete req.session.success_message;
     delete req.session.error_message
-    res.render('vwAdmin/product/detail', { product } );
+    res.render('vwAdmin/product/detail', { product });
 });
 
 router.get('/edit/:id', async (req, res) => {
     const id = req.params.id;
-    const product = await productModel.findByProductIdForAdmin(id);
+    const product = await productService.findByProductIdForAdmin(id);
     // console.log(product)
     const sellers = await userModel.findUsersByRole('seller');
     // console.log(product);
-    res.render('vwAdmin/product/edit', { product, sellers } );
+    res.render('vwAdmin/product/edit', { product, sellers });
 });
 
 router.post('/edit', async (req, res) => {
