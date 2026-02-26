@@ -113,36 +113,13 @@ export function countByKeywords() {
     // Chỉ đếm sản phẩm ACTIVE
     .where('products.end_at', '>', new Date())
     .whereNull('products.closed_at')
-    // .where((builder) => {
-    //   const words = searchQuery.split(/\s+/).filter(w => w.length > 0);
-    //   if (logic === 'and') {
-    //     // AND logic: all keywords must match
-    //     words.forEach(word => {
-    //       builder.where(function () {
-    //         this.whereRaw(`LOWER(remove_accents(products.name)) LIKE ?`, [`%${word}%`])
-    //           .orWhereRaw(`LOWER(remove_accents(categories.name)) LIKE ?`, [`%${word}%`])
-    //           .orWhereRaw(`LOWER(remove_accents(parent_category.name)) LIKE ?`, [`%${word}%`]);
-    //       });
-    //     });
-    //   } else {
-    //     // OR logic: any keyword can match in product name OR category name OR parent category name
-    //     words.forEach(word => {
-    //       builder.orWhere(function () {
-    //         this.whereRaw(`LOWER(remove_accents(products.name)) LIKE ?`, [`%${word}%`])
-    //           .orWhereRaw(`LOWER(remove_accents(categories.name)) LIKE ?`, [`%${word}%`])
-    //           .orWhereRaw(`LOWER(remove_accents(parent_category.name)) LIKE ?`, [`%${word}%`]);
-    //       });
-    //     });
-    //   }
-    // })
     .count('products.id as count')
-  // .first();
 }
 export function countAll() {
   return db('products').count('id as count').first();
 }
 
-export function findByCategoryId(categoryId, limit, offset, sort, currentUserId) {
+export function findByCategoryId(categoryId, currentUserId) {
   // currentUserId: ID của người đang xem (nếu chưa đăng nhập thì truyền null hoặc undefined)
 
   return db('products')
@@ -185,25 +162,25 @@ export function findByCategoryId(categoryId, limit, offset, sort, currentUserId)
       db.raw('watchlists.product_id IS NOT NULL AS is_favorite')
       // --------------------------
     )
-    .modify((queryBuilder) => {
-      if (sort === 'price_asc') {
-        queryBuilder.orderBy('products.current_price', 'asc');
-      }
-      else if (sort === 'price_desc') {
-        queryBuilder.orderBy('products.current_price', 'desc');
-      }
-      else if (sort === 'newest') {
-        queryBuilder.orderBy('products.created_at', 'desc');
-      }
-      else if (sort === 'oldest') {
-        queryBuilder.orderBy('products.created_at', 'asc');
-      }
-      else {
-        queryBuilder.orderBy('products.created_at', 'desc');
-      }
-    })
-    .limit(limit)
-    .offset(offset);
+  // .modify((queryBuilder) => {
+  //   if (sort === 'price_asc') {
+  //     queryBuilder.orderBy('products.current_price', 'asc');
+  //   }
+  //   else if (sort === 'price_desc') {
+  //     queryBuilder.orderBy('products.current_price', 'desc');
+  //   }
+  //   else if (sort === 'newest') {
+  //     queryBuilder.orderBy('products.created_at', 'desc');
+  //   }
+  //   else if (sort === 'oldest') {
+  //     queryBuilder.orderBy('products.created_at', 'asc');
+  //   }
+  //   else {
+  //     queryBuilder.orderBy('products.created_at', 'desc');
+  //   }
+  // })
+  // .limit(limit)
+  // .offset(offset);
 }
 
 export function countByCategoryId(categoryId) {
@@ -213,7 +190,7 @@ export function countByCategoryId(categoryId) {
     .first();
 }
 
-export function findByCategoryIds(categoryIds, limit, offset, sort, currentUserId) {
+export function findByCategoryIds(categoryIds, currentUserId) {
   return db('products')
     .leftJoin('users', 'products.highest_bidder_id', 'users.id')
     .leftJoin('watchlists', function () {
@@ -236,25 +213,25 @@ export function findByCategoryIds(categoryIds, limit, offset, sort, currentUserI
       `),
       db.raw('watchlists.product_id IS NOT NULL AS is_favorite')
     )
-    .modify((queryBuilder) => {
-      if (sort === 'price_asc') {
-        queryBuilder.orderBy('products.current_price', 'asc');
-      }
-      else if (sort === 'price_desc') {
-        queryBuilder.orderBy('products.current_price', 'desc');
-      }
-      else if (sort === 'newest') {
-        queryBuilder.orderBy('products.created_at', 'desc');
-      }
-      else if (sort === 'oldest') {
-        queryBuilder.orderBy('products.created_at', 'asc');
-      }
-      else {
-        queryBuilder.orderBy('products.created_at', 'desc');
-      }
-    })
-    .limit(limit)
-    .offset(offset);
+  // .modify((queryBuilder) => {
+  //   if (sort === 'price_asc') {
+  //     queryBuilder.orderBy('products.current_price', 'asc');
+  //   }
+  //   else if (sort === 'price_desc') {
+  //     queryBuilder.orderBy('products.current_price', 'desc');
+  //   }
+  //   else if (sort === 'newest') {
+  //     queryBuilder.orderBy('products.created_at', 'desc');
+  //   }
+  //   else if (sort === 'oldest') {
+  //     queryBuilder.orderBy('products.created_at', 'asc');
+  //   }
+  //   else {
+  //     queryBuilder.orderBy('products.created_at', 'desc');
+  //   }
+  // })
+  // .limit(limit)
+  // .offset(offset);
 }
 
 export function countByCategoryIds(categoryIds) {

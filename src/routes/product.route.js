@@ -65,7 +65,7 @@ router.get('/category', async (req, res) => {
     categoryIds = [categoryId, ...childIds];
   }
 
-  const list = await productModel.findByCategoryIds(categoryIds, limit, offset, sort, userId);
+  const list = await productService.findByCategoryIds(categoryIds, limit, offset, sort, userId);
   const products = await prepareProductList(list);
   const total = await productModel.countByCategoryIds(categoryIds);
   console.log('Total products in category:', total.count);

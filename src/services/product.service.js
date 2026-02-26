@@ -36,8 +36,7 @@ export function searchPageByKeywords(keywords, limit, offset, userId, logic = 'o
   return query.limit(limit).offset(offset);
 }
 
-export async function countByKeywords(keywords, logic = 'or') {
-  console.log("DEBUG: countByKeywords")
+export function countByKeywords(keywords, logic = 'or') {
   // Remove accents from keywords for search
   const searchQuery = removeAccents(keywords);
 
@@ -46,6 +45,22 @@ export async function countByKeywords(keywords, logic = 'or') {
   applySearchCondition(query, searchQuery, logic);
 
   return query.first();
+}
+
+export function findByCategoryId(categoryId, limit, offset, sort, currentUserId) {
+  const query = productModel.findByCategoryId(categoryId, currentUserId);
+
+  applySorting(query, sort);
+
+  return query.limit(limit).offset(offset);
+}
+
+export function findByCategoryIds(categoryIds, limit, offset, sort, currentUserId) {
+  const query = productModel.findByCategoryIds(categoryIds, currentUserId);
+
+  applySorting(query, sort);
+
+  return query.limit(limit).offset(offset);
 }
 
 function removeAccents(keywords) {
