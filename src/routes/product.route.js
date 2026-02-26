@@ -120,7 +120,7 @@ router.get('/search', async (req, res) => {
   // Search in both product name and category
   const list = await productService.searchPageByKeywords(keywords, limit, offset, userId, logic, sort);
   const products = await prepareProductList(list);
-  const total = await productModel.countByKeywords(keywords, logic);
+  const total = await productService.countByKeywords(keywords, logic);
   const totalCount = parseInt(total.count) || 0;
 
   const nPages = Math.ceil(totalCount / limit);

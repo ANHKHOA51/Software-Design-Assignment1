@@ -23,8 +23,8 @@ function mapProductRows(rows) {
   return product;
 }
 
-export async function searchPageByKeywords(keywords, limit, offset, userId, logic = 'or', sort = '') {
-  console.log("DEBUG: method productService.searchPageByKeywords");
+export function searchPageByKeywords(keywords, limit, offset, userId, logic = 'or', sort = '') {
+  // Remove accents from keywords for search
   const searchQuery = removeAccents(keywords);
 
   const query = productModel.searchPageByKeywords(searchQuery, userId);
@@ -34,6 +34,18 @@ export async function searchPageByKeywords(keywords, limit, offset, userId, logi
   applySorting(query, sort);
 
   return query.limit(limit).offset(offset);
+}
+
+export async function countByKeywords(keywords, logic = 'or') {
+  console.log("DEBUG: countByKeywords")
+  // Remove accents from keywords for search
+  const searchQuery = removeAccents(keywords);
+
+  const query = productModel.countByKeywords();
+
+  applySearchCondition(query, searchQuery, logic);
+
+  return query.first();
 }
 
 function removeAccents(keywords) {
