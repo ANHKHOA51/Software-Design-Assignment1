@@ -8,7 +8,6 @@ import * as reviewModel from '../models/review.model.js';
 import * as autoBiddingModel from '../models/autoBidding.model.js';
 import { isAuthenticated } from '../middlewares/auth.mdw.js';
 import { sendMail } from '../utils/mailer.js';
-import * as userService from '../services/userService.js'
 
 const router = express.Router();
 
@@ -18,15 +17,19 @@ function generateOtp() {
 
 router.get('/ratings', isAuthenticated, async (req, res) => {
   const currentUserId = req.session.authUser.id;
-
+  
   // // Get rating point
-  const rating_point = await userService.getRatingPoint(currentUserId);
+  const ratingData = await reviewModel.calculateRatingPoint(currentUserId);
+  const rating_point = ratingData ? ratingData.rating_point : 0;
   // // Get all reviews (model already excludes rating=0)
-
+  const reviews = await reviewModel.getReviewsByUserId(currentUserId);
+  
   // // Calculate statistics
-  const { totalReviews, positiveReviews, negativeReviews } = await userService.getReviewStatistic();
-
-  res.render('vwAccount/rating', {
+  const totalReviews = reviews.length;
+  const positiveReviews = reviews.filter(r => r.rating === 1).length;
+  const negativeReviews = reviews.filter(r => r.rating === -1).length;
+  
+  res.render('vwAccount/rating', { 
     activeSection: 'ratings',
     rating_point,
     reviews,
@@ -35,7 +38,6 @@ router.get('/ratings', isAuthenticated, async (req, res) => {
     negativeReviews
   });
 });
-
 // GET /signup
 router.get('/signup', function (req, res) {
   // CẬP NHẬT: Truyền Site Key xuống view để hiển thị widget
@@ -43,6 +45,7 @@ router.get('/signup', function (req, res) {
     recaptchaSiteKey: process.env.RECAPTCHA_SITE_KEY
   });
 });
+
 
 // GET /signin
 router.get('/signin', function (req, res) {
@@ -69,8 +72,22 @@ router.get('/verify-email', (req, res) => {
 router.get('/forgot-password', (req, res) => {
   res.render('vwAccount/auth/forgot-password');
 });
-
-async function sendForgotPasswordMail(email, user, otp) {
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  const user = await userModel.findByEmail(email);
+  if (!user) {
+    return res.render('vwAccount/auth/forgot-password', {
+      error_message: 'Email not found.',
+    });
+  }
+  const otp = generateOtp();
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 phút
+  await userModel.createOtp({
+    user_id: user.id,
+    otp_code: otp,
+    purpose: 'reset_password',
+    expires_at: expiresAt,
+  });
   await sendMail({
     to: email,
     subject: 'Password Reset for Your Online Auction Account',
@@ -80,52 +97,29 @@ async function sendForgotPasswordMail(email, user, otp) {
       <p>This code will expire in 15 minutes.</p>
     `,
   });
-}
-
-router.post('/forgot-password', async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    await userService.sendResetPasswordOtp(email);
-
-    return res.render('vwAccount/auth/verify-forgot-password-otp', {
-      email,
-    });
-
-  } catch (err) {
-    return res.render('vwAccount/auth/forgot-password', {
-      error_message: err.message,
-    });
-  }
-});
-
-router.post('/verify-forgot-password-otp', async (req, res) => {
-  try {
-    const { email, otp } = req.body;
-    
-    await userService.verifyForgotPwOtp(email, otp)
-
-    return res.render('vwAccount/auth/reset-password', { email });
-  } catch(e) {
-    return res.render('vwAccount/auth/verify-forgot-password-otp', {
-      email,
-      error_message: e.message,
-    });
-  }
-});
-
-async function resendResetPwOtp(email, user, otp) {
-  await sendMail({
-    to: email,
-    subject: 'New OTP for Password Reset',
-    html: `
-      <p>Hi ${user.fullname},</p>
-      <p>Your new OTP code for password reset is: <strong>${otp}</strong></p>
-      <p>This code will expire in 15 minutes.</p>
-    `,
+  return res.render('vwAccount/auth/verify-forgot-password-otp', {
+    email,
   });
-}
-
+});
+router.post('/verify-forgot-password-otp', async (req, res) => {
+    const { email, otp } = req.body;
+    const user = await userModel.findByEmail(email);
+    const otpRecord = await userModel.findValidOtp({
+      user_id: user.id,
+      otp_code: otp,
+      purpose: 'reset_password',
+    });
+    console.log('Verifying OTP for email:', email, ' OTP:', otp);
+    if (!otpRecord) {
+      console.log('Invalid OTP attempt for email:', email);
+      return res.render('vwAccount/auth/verify-forgot-password-otp', {
+        email,
+        error_message: 'Invalid or expired OTP.',
+      });
+    }
+    await userModel.markOtpUsed(otpRecord.id);
+    return res.render('vwAccount/auth/reset-password', { email });
+});
 router.post('/resend-forgot-password-otp', async (req, res) => {
   const { email } = req.body;
   const user = await userModel.findByEmail(email);
@@ -143,7 +137,15 @@ router.post('/resend-forgot-password-otp', async (req, res) => {
     purpose: 'reset_password',
     expires_at: expiresAt,
   });
-  await resendResetPwOtp(email, user, otp);
+  await sendMail({
+    to: email,
+    subject: 'New OTP for Password Reset',
+    html: `
+      <p>Hi ${user.fullname},</p>
+      <p>Your new OTP code for password reset is: <strong>${otp}</strong></p>
+      <p>This code will expire in 15 minutes.</p>
+    `,
+  });
   return res.render('vwAccount/auth/verify-forgot-password-otp', {
     email,
     info_message: 'We have sent a new OTP to your email. Please check your inbox.',
@@ -170,19 +172,6 @@ router.post('/reset-password', async (req, res) => {
     success_message: 'Your password has been reset. You can sign in now.',
   });
 });
-
-async function sendOtpMail(email, user, otp) {
-  await sendMail({
-    to: email,
-    subject: 'Verify your Online Auction account',
-    html: `
-        <p>Hi ${user.fullname},</p>
-        <p>Your OTP code is: <strong>${otp}</strong></p>
-        <p>This code will expire in 15 minutes.</p>
-      `,
-  });
-}
-
 // POST /signin
 router.post('/signin', async function (req, res) {
   const { email, password } = req.body;
@@ -215,7 +204,15 @@ router.post('/signin', async function (req, res) {
       expires_at: expiresAt,
     });
 
-    await sendOtpMail(email, user, otp);
+    await sendMail({
+      to: email,
+      subject: 'Verify your Online Auction account',
+      html: `
+        <p>Hi ${user.fullname},</p>
+        <p>Your OTP code is: <strong>${otp}</strong></p>
+        <p>This code will expire in 15 minutes.</p>
+      `,
+    });
 
     return res.redirect(
       `/account/verify-email?email=${encodeURIComponent(email)}`
@@ -233,16 +230,34 @@ router.post('/signin', async function (req, res) {
 // POST /signup
 router.post('/signup', async function (req, res) {
   const { fullname, email, address, password, confirmPassword } = req.body;
-
+  
   // --- SỬA LỖI: Lấy token recaptcha từ body ---
   const recaptchaResponse = req.body['g-recaptcha-response'];
-
+  
   const errors = {};
   const old = { fullname, email, address };
   const recaptchaSiteKey = process.env.RECAPTCHA_SITE_KEY;
 
   // // --- BẮT ĐẦU XỬ LÝ RECAPTCHA ---
-  await validateCaptcha(recaptchaResponse, errors);
+  if (!recaptchaResponse) {
+      errors.captcha = 'Please check the captcha box.';
+  } else {
+      // Gọi Google API để verify
+      const secretKey = process.env.RECAPTCHA_SECRET;
+      const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${recaptchaResponse}`;
+      
+      try {
+          const response = await fetch(verifyUrl, { method: 'POST' });
+          const data = await response.json();
+          // data.success trả về true nếu verify thành công
+          if (!data.success) {
+               errors.captcha = 'Captcha verification failed. Please try again.';
+          }
+      } catch (err) {
+          console.error('Recaptcha error:', err);
+          errors.captcha = 'Error connecting to captcha server.';
+      }
+  }
   // --- KẾT THÚC XỬ LÝ RECAPTCHA ---
   if (!fullname) errors.fullname = 'Full name is required';
   if (!address) errors.address = 'Address is required';
@@ -372,7 +387,15 @@ router.post('/resend-otp', async (req, res) => {
     expires_at: expiresAt,
   });
 
-  await resendVerifyEmailOtp(email, user, otp);
+  await sendMail({
+    to: email,
+    subject: 'New OTP for email verification',
+    html: `
+      <p>Hi ${user.fullname},</p>
+      <p>Your new OTP code is: <strong>${otp}</strong></p>
+      <p>This code will expire in 15 minutes.</p>
+    `,
+  });
 
   return res.render('vwAccount/verify-otp', {
     email,
@@ -412,17 +435,78 @@ router.get('/profile', isAuthenticated, async (req, res) => {
 // PUT /profile - XỬ LÝ UPDATE
 router.put('/profile', isAuthenticated, async (req, res) => {
   try {
-    const userId = req.session.authUser.id;
-    const updatedUser = await userService.updateProfile(userId, req.body);
+    // 1. Lấy dữ liệu từ form (Bổ sung address)
+    const { email, fullname, address, date_of_birth, old_password, new_password, confirm_new_password } = req.body;
+    const currentUserId = req.session.authUser.id;
 
-    req.session.authUser = updatedUser;
+    // Lấy thông tin user hiện tại
+    const currentUser = await userModel.findById(currentUserId);
 
+    // 2. KIỂM TRA MẬT KHẨU CŨ (Chỉ cho non-OAuth users)
+    if (!currentUser.oauth_provider) {
+      if (!old_password || !bcrypt.compareSync(old_password, currentUser.password_hash)) {
+        return res.render('vwAccount/profile', {
+          user: currentUser,
+          err_message: 'Password is incorrect!'
+        });
+      }
+    }
+
+    // 3. KIỂM TRA TRÙNG EMAIL
+    if (email !== currentUser.email) {
+      const existingUser = await userModel.findByEmail(email);
+      if (existingUser) {
+        return res.render('vwAccount/profile', {
+          user: currentUser,
+          err_message: 'Email is already in use by another user.'
+        });
+      }
+    }
+
+    // 4. KIỂM TRA MẬT KHẨU MỚI (Chỉ cho non-OAuth users)
+    if (!currentUser.oauth_provider && new_password) {
+      if (new_password !== confirm_new_password) {
+        return res.render('vwAccount/profile', {
+          user: currentUser,
+          err_message: 'New passwords do not match.'
+        });
+      }
+    }
+
+    // 5. CHUẨN BỊ DỮ LIỆU UPDATE
+    const entity = {
+      email,
+      fullname,
+      address: address || currentUser.address,
+      date_of_birth: date_of_birth ? new Date(date_of_birth) : currentUser.date_of_birth,
+    };
+    
+    // Chỉ cập nhật password cho non-OAuth users
+    if (!currentUser.oauth_provider) {
+      entity.password_hash = new_password
+        ? bcrypt.hashSync(new_password, 10)
+        : currentUser.password_hash;
+    }
+
+    // 6. GỌI MODEL UPDATE (Model đã sửa để trả về Object)
+    const updatedUser = await userModel.update(currentUserId, entity);
+    console.log('Updated user result:', updatedUser);
+
+    // 7. CẬP NHẬT SESSION
+    if (updatedUser) {
+      delete updatedUser.password_hash;
+      req.session.authUser = updatedUser;
+    }
+
+    // 8. THÀNH CÔNG -> Redirect về trang profile kèm query success
     return res.redirect('/account/profile?success=true');
 
-  } catch (err) {
+  } 
+  catch (err) {
+    console.error(err);
     return res.render('vwAccount/profile', {
       user: req.session.authUser,
-      err_message: err.message || 'System error. Please try again later.'
+      err_message: 'System error. Please try again later.'
     });
   }
 });
@@ -451,7 +535,7 @@ router.post('/request-upgrade', isAuthenticated, async (req, res) => {
 
   }
 });
-router.get('/watchlist', isAuthenticated, async (req, res) => {
+router.get('/watchlist', isAuthenticated ,async (req, res) => {
   const limit = 3;
   const page = parseInt(req.query.page) || 1;
   const offset = (page - 1) * limit;
@@ -479,7 +563,7 @@ router.get('/watchlist', isAuthenticated, async (req, res) => {
 router.get('/bidding', isAuthenticated, async (req, res) => {
   const currentUserId = req.session.authUser.id;
   const biddingProducts = await autoBiddingModel.getBiddingProductsByBidderId(currentUserId);
-
+  
   res.render('vwAccount/bidding-products', {
     activeSection: 'bidding',
     products: biddingProducts
@@ -490,7 +574,7 @@ router.get('/bidding', isAuthenticated, async (req, res) => {
 router.get('/auctions', isAuthenticated, async (req, res) => {
   const currentUserId = req.session.authUser.id;
   const wonAuctions = await autoBiddingModel.getWonAuctionsByBidderId(currentUserId);
-
+  
   // Check if user has rated seller for each product
   for (let product of wonAuctions) {
     const review = await reviewModel.findByReviewerAndProduct(currentUserId, product.id);
@@ -503,7 +587,7 @@ router.get('/auctions', isAuthenticated, async (req, res) => {
       product.has_rated_seller = false;
     }
   }
-
+  
   res.render('vwAccount/won-auctions', {
     activeSection: 'auctions',
     products: wonAuctions
@@ -516,10 +600,10 @@ router.post('/won-auctions/:productId/rate-seller', isAuthenticated, async (req,
     const currentUserId = req.session.authUser.id;
     const productId = req.params.productId;
     const { seller_id, rating, comment } = req.body;
-
+    
     // Validate rating
     const ratingValue = rating === 'positive' ? 1 : -1;
-
+    
     // Check if already rated
     const existingReview = await reviewModel.findByReviewerAndProduct(currentUserId, productId);
     if (existingReview) {
@@ -538,7 +622,7 @@ router.post('/won-auctions/:productId/rate-seller', isAuthenticated, async (req,
         comment: comment || null
       });
     }
-
+    
     res.json({ success: true });
   } catch (error) {
     console.error('Error rating seller:', error);
@@ -552,15 +636,15 @@ router.put('/won-auctions/:productId/rate-seller', isAuthenticated, async (req, 
     const currentUserId = req.session.authUser.id;
     const productId = req.params.productId;
     const { rating, comment } = req.body;
-
+    
     const ratingValue = rating === 'positive' ? 1 : -1;
-
+    
     // Update review
     await reviewModel.updateByReviewerAndProduct(currentUserId, productId, {
       rating: ratingValue,
       comment: comment || null
     });
-
+    
     res.json({ success: true });
   } catch (error) {
     console.error('Error updating rating:', error);
@@ -638,37 +722,3 @@ router.get('/auth/github/callback',
 );
 
 export default router;
-
-async function resendVerifyEmailOtp(email, user, otp) {
-  await sendMail({
-    to: email,
-    subject: 'New OTP for email verification',
-    html: `
-      <p>Hi ${user.fullname},</p>
-      <p>Your new OTP code is: <strong>${otp}</strong></p>
-      <p>This code will expire in 15 minutes.</p>
-    `,
-  });
-}
-
-async function validateCaptcha(recaptchaResponse, errors) {
-  if (!recaptchaResponse) {
-    errors.captcha = 'Please check the captcha box.';
-  } else {
-    // Gọi Google API để verify
-    const secretKey = process.env.RECAPTCHA_SECRET;
-    const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${recaptchaResponse}`;
-
-    try {
-      const response = await fetch(verifyUrl, { method: 'POST' });
-      const data = await response.json();
-      // data.success trả về true nếu verify thành công
-      if (!data.success) {
-        errors.captcha = 'Captcha verification failed. Please try again.';
-      }
-    } catch (err) {
-      console.error('Recaptcha error:', err);
-      errors.captcha = 'Error connecting to captcha server.';
-    }
-  }
-}
