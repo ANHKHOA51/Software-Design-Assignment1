@@ -145,7 +145,7 @@ router.get('/search', async (req, res) => {
 router.get('/detail', async (req, res) => {
   const userId = req.session.authUser ? req.session.authUser.id : null;
   const productId = req.query.id;
-  const product = await productModel.findByProductId2(productId, userId);
+  const product = await productService.findByProductId2(productId, userId);
   const related_products = await productModel.findRelatedProducts(productId);
 
   // Kiểm tra nếu không tìm thấy sản phẩm
@@ -291,7 +291,7 @@ router.get('/bidding-history', isAuthenticated, async (req, res) => {
 
   try {
     // Get product information
-    const product = await productModel.findByProductId2(productId, null);
+    const product = await productService.findByProductId2(productId, null);
 
     if (!product) {
       return res.status(404).render('404', { message: 'Product not found' });
@@ -808,7 +808,7 @@ router.post('/comment', isAuthenticated, async (req, res) => {
     await productCommentModel.createComment(productId, userId, content.trim(), parentId || null);
 
     // Get product and users for email notification
-    const product = await productModel.findByProductId2(productId, null);
+    const product = await productService.findByProductId2(productId, null);
     const commenter = await userModel.findById(userId);
     const seller = await userModel.findById(product.seller_id);
     const productUrl = `${req.protocol}://${req.get('host')}/products/detail?id=${productId}`;
@@ -979,7 +979,7 @@ router.get('/complete-order', isAuthenticated, async (req, res) => {
     return res.redirect('/');
   }
 
-  const product = await productModel.findByProductId2(productId, userId);
+  const product = await productService.findByProductId2(productId, userId);
 
   if (!product) {
     return res.status(404).render('404', { message: 'Product not found' });
@@ -1642,7 +1642,7 @@ router.post('/unreject-bidder', isAuthenticated, async (req, res) => {
 
   try {
     // Verify product ownership
-    const product = await productModel.findByProductId2(productId, sellerId);
+    const product = await productService.findByProductId2(productId, sellerId);
 
     if (!product) {
       throw new Error('Product not found');

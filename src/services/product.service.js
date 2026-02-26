@@ -1,8 +1,14 @@
 import * as productModel from '../models/product.model.js';
 
 export async function findByProductIdForAdmin(productId, userId) {
-  console.log("DEBUG: function productService.findByProductIdForAdmin");
   const rows = await productModel.findByProductIdForAdmin(productId, userId);
+
+  return mapProductRows(rows);
+}
+
+export async function findByProductId2(productId, userId) {
+  console.log("DEBUG: findByProductId2");
+  const rows = await productModel.findByProductId2(productId, userId);
 
   return mapProductRows(rows);
 }
