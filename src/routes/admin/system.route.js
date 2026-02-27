@@ -1,22 +1,11 @@
 import express from 'express';
 import * as systemSettingModel from '../../models/systemSetting.model.js';
+import * as systemService from '../../services/systemService.js'
 const router = express.Router();
 
 router.get('/settings', async (req, res) => {
     try {
-        const settingsArray = await systemSettingModel.getAllSettings();
-        const settings = {
-            new_product_limit_minutes: 60,
-            auto_extend_trigger_minutes: 5,
-            auto_extend_duration_minutes: 10
-        };
-        
-        // Convert array to object
-        if (settingsArray && settingsArray.length > 0) {
-            settingsArray.forEach(setting => {
-                settings[setting.key] = parseInt(setting.value);
-            });
-        }
+        const settings = await systemService.getSettings()
         
         res.render('vwAdmin/system/setting', {
             settings,
@@ -37,12 +26,9 @@ router.get('/settings', async (req, res) => {
 
 router.post('/settings', async (req, res) => {
     try {
-        const { new_product_limit_minutes, auto_extend_trigger_minutes, auto_extend_duration_minutes } = req.body;
-        
-        // Update settings
-        await systemSettingModel.updateSetting('new_product_limit_minutes', new_product_limit_minutes);
-        await systemSettingModel.updateSetting('auto_extend_trigger_minutes', auto_extend_trigger_minutes);
-        await systemSettingModel.updateSetting('auto_extend_duration_minutes', auto_extend_duration_minutes);
+        const payload = req.body
+
+        await systemService.updateSettings(payload)
         
         res.redirect('/admin/system/settings?success=Settings updated successfully');
     } catch (error) {

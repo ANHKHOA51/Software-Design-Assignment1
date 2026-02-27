@@ -1,5 +1,4 @@
 import express from 'express';
-
 import { isAuthenticated } from '../middlewares/auth.mdw.js';
 import { uploadArray } from '../middlewares/uploadOrderImages.mdw.js';
 import * as productService from '../services/product.service.js';

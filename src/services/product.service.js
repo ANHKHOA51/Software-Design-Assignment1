@@ -25,7 +25,7 @@ export async function findByProductIdForAdmin(productId, userId) {
   return mapProductRows(rows);
 }
 
-async function findByProductId2(productId, userId) {
+export async function findByProductId2(productId, userId) {
   const rows = await productModel.findByProductId2(productId, userId);
 
   return mapProductRows(rows);
