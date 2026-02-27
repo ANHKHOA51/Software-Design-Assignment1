@@ -1,5 +1,6 @@
 import express from 'express';
 import * as categoryModel from '../../models/category.model.js';
+import * as categoryService from '../../services/category.service.js';
 const router = express.Router();
 
 // Define your admin category routes here
@@ -23,9 +24,7 @@ router.get('/list', async (req, res) => {
 
 router.get('/detail/:id', async (req, res) => {
     const id = req.params.id;
-    const category = await categoryModel.findByCategoryId(id);
-    const childrenCount = await categoryModel.countProductsInChildren(id);
-    category.product_count = parseInt(category.product_count) + parseInt(childrenCount.count);
+    const category = await categoryService.findByCategoryId(id);
     res.render('vwAdmin/category/detail', { category });
 });
 
@@ -36,9 +35,7 @@ router.get('/add', async (req, res) => {
 
 router.get('/edit/:id', async (req, res) => {
     const id = req.params.id;
-    const category = await categoryModel.findByCategoryId(id);
-    const childrenCount = await categoryModel.countProductsInChildren(id);
-    category.product_count = parseInt(category.product_count) + parseInt(childrenCount.count);
+    const category = await categoryService.findByCategoryId(id);
     const parentCategories = await categoryModel.findLevel1Categories();
     res.render('vwAdmin/category/edit', { category, parentCategories });
 });
