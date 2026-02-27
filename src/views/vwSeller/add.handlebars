@@ -331,30 +331,18 @@ document.querySelector('#addProductForm').addEventListener('submit', function(e)
   document.getElementById('addProductForm').dispatchEvent(new Event('submit', { bubbles: true }));
 });
 // Remove error styling when user types
-document.getElementById('productName').addEventListener('input', function() {
-  this.classList.remove('is-invalid');
-  document.getElementById('productNameError').classList.remove('d-block');
-});
+function removeErrorStyle(elementId, errorElementId, inputType) {
+  document.getElementById(elementId).addEventListener(inputType, function() {
+    this.classList.remove('is-invalid');
+    document.getElementById(errorElementId).classList.remove('d-block');
+  });
+}
 
-document.getElementById('category').addEventListener('change', function() {
-  this.classList.remove('is-invalid');
-  document.getElementById('categoryError').classList.remove('d-block');
-});
-
-document.getElementById('startPrice').addEventListener('input', function() {
-  this.classList.remove('is-invalid');
-  document.getElementById('startPriceError').classList.remove('d-block');
-});
-
-document.getElementById('stepPrice').addEventListener('input', function() {
-  this.classList.remove('is-invalid');
-  document.getElementById('stepPriceError').classList.remove('d-block');
-});
-
-document.getElementById('buyNowPrice').addEventListener('input', function() {
-  this.classList.remove('is-invalid');
-  document.getElementById('buyNowPriceError').classList.remove('d-block');
-});
+removeErrorStyle('productName', 'productNameError', 'input');
+removeErrorStyle('category', 'categoryError', 'change');
+removeErrorStyle('startPrice', 'startPriceError', 'input');
+removeErrorStyle('stepPrice', 'stepPriceError', 'input');
+removeErrorStyle('buyNowPrice', 'buyNowPriceError', 'input');
 
 document.getElementById('endDate').addEventListener('change', function() {
   this.classList.remove('is-invalid');
@@ -377,6 +365,25 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('createdAt').value = now.toISOString();
 });
 
+function showErrorAlert(error_message) {
+  Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: error_message,
+      confirmButtonColor: '#72AEC8'
+    });
+}
+
+function showValidationError(elementId, errorElementId, error_message) {
+  const inputElement = document.getElementById(elementId);
+  const errorElement = document.getElementById(errorElementId);
+  inputElement.classList.add('is-invalid');
+  errorElement.classList.add('d-block');
+  inputElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  inputElement.focus();
+  showErrorAlert(error_message);
+}
+
 // Form Submission
 document.getElementById('addProductForm').addEventListener('submit', async function(e) {
   e.preventDefault();
@@ -391,79 +398,24 @@ document.getElementById('addProductForm').addEventListener('submit', async funct
   const imagesError = document.getElementById('imagesError');
   // Basic Validation
   if (productName === '') {
-    const inputElement = document.getElementById('productName');
-    const errorElement = document.getElementById('productNameError');
-    inputElement.classList.add('is-invalid');
-    errorElement.classList.add('d-block');
-    inputElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    inputElement.focus();
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'Please enter a product name.',
-      confirmButtonColor: '#72AEC8'
-    });
+    showValidationError('productName', 'productNameError', 'Please enter a product name.');
     return;
   }
   if (category === '') {
-    const inputElement = document.getElementById('category');
-    const errorElement = document.getElementById('categoryError');
-    inputElement.classList.add('is-invalid');
-    errorElement.classList.add('d-block');
-    inputElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    inputElement.focus();
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'Please select a category.',
-      confirmButtonColor: '#72AEC8'
-    });
+    showValidationError('category', 'categoryError', 'Please select a category.');
     return;
   }
   console.log('Start Price:', startPrice);
   if (startPrice === '' || isNaN(parseInt(startPrice.replace(/,/g, ''))) || parseInt(startPrice.replace(/,/g, '')) < 1000) {
-    const inputElement = document.getElementById('startPrice');
-    const errorElement = document.getElementById('startPriceError');
-    inputElement.classList.add('is-invalid');
-    errorElement.classList.add('d-block');
-    inputElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    inputElement.focus();
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'Please enter a valid starting price (minimum 1,000 VND).',
-      confirmButtonColor: '#72AEC8'
-    });
+    showValidationError('startPrice', 'startPriceError', 'Please enter a valid starting price (minimum 1,000 VND).');
     return;
   }
   if (stepPrice === '' || isNaN(parseInt(stepPrice.replace(/,/g, ''))) || parseInt(stepPrice.replace(/,/g, '')) < 1000) {
-    const inputElement = document.getElementById('stepPrice');
-    const errorElement = document.getElementById('stepPriceError');
-    inputElement.classList.add('is-invalid');
-    errorElement.classList.add('d-block');
-    inputElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    inputElement.focus();
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'Please enter a valid bid step (minimum 1,000 VND).',
-      confirmButtonColor: '#72AEC8'
-    });
+    showValidationError('stepPrice', 'stepPriceError', 'Please enter a valid bid step (minimum 1,000 VND).');
     return;
   }
   if (buyNowPrice !== '' && (isNaN(parseInt(buyNowPrice.replace(/,/g, ''))) || parseInt(buyNowPrice.replace(/,/g, '')) <= parseInt(startPrice.replace(/,/g, '')))) {
-    const inputElement = document.getElementById('buyNowPrice');
-    const errorElement = document.getElementById('buyNowPriceError');
-    inputElement.classList.add('is-invalid');
-    errorElement.classList.add('d-block');
-    inputElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    inputElement.focus();
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'Buy now price must be greater than starting price.',
-      confirmButtonColor: '#72AEC8'
-    });
+    showValidationError('buyNowPrice', 'buyNowPriceError', 'Buy now price must be greater than starting price.');
     return;
   }
 
@@ -475,12 +427,7 @@ document.getElementById('addProductForm').addEventListener('submit', async funct
     inputElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
     inputElement.focus();
     
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'Please select a valid end date and time.',
-      confirmButtonColor: '#72AEC8'
-    });
+    showErrorAlert('Please select a valid end date and time.');
     return;
   }
 
@@ -495,12 +442,7 @@ document.getElementById('addProductForm').addEventListener('submit', async funct
     inputElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
     inputElement.focus();
     
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'End date and time must be in the future.',
-      confirmButtonColor: '#72AEC8'
-    });
+    showErrorAlert('End date and time must be in the future.');
     return;
   }
   
@@ -518,12 +460,7 @@ document.getElementById('addProductForm').addEventListener('submit', async funct
     if (focusableElement) {
       focusableElement.focus();
     }
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'Please upload a main thumbnail image.',
-      confirmButtonColor: '#72AEC8'
-    });
+    showErrorAlert('Please upload a main thumbnail image.');
     return;
   } else {
     document.getElementById('thumbnailError').style.display = 'none';
@@ -539,12 +476,7 @@ document.getElementById('addProductForm').addEventListener('submit', async funct
     if (focusableElement) {
       focusableElement.focus();
     }
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'Please upload at least 3 additional images.',
-      confirmButtonColor: '#72AEC8'
-    });
+    showErrorAlert('Please upload at least 3 additional images.');
     return;
   } else {
     document.getElementById('subImagesError').style.display = 'none';
