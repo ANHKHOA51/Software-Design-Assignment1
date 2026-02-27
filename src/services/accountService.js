@@ -42,8 +42,7 @@ export async function sendResetPasswordOtp(email) {
         throw new Error('Email not found.');
     }
 
-    const otp = generateOtp();
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    const { otp, expiresAt } = createOTP();
 
     await userModel.createOtp({
         user_id: user.id,
@@ -84,8 +83,7 @@ export async function signIn(email, password) {
     }
 
     if (!user.email_verified) {
-        const otp = generateOtp();
-        const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 phút
+        const { otp, expiresAt } = createOTP(); // 15 phút
 
         await userModel.createOtp({
             user_id: user.id,
@@ -364,4 +362,8 @@ async function validateCaptcha(recaptchaResponse, errors) {
             errors.captcha = 'Error connecting to captcha server.';
         }
     }
+}
+
+export function generateOtp() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }

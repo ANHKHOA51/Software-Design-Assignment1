@@ -1,4 +1,5 @@
 import express from 'express';
+import { generateOtp } from '../services/accountService.js';
 import bcrypt from 'bcryptjs';
 import passport from '../utils/passport.js';
 import * as userModel from '../models/user.model.js';
@@ -9,10 +10,6 @@ import * as accountService from '../services/accountService.js'
 import * as mailService from '../services/mailService.js'
 
 const router = express.Router();
-
-function generateOtp() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
 
 router.get('/ratings', isAuthenticated, async (req, res) => {
   const currentUserId = req.session.authUser.id;
