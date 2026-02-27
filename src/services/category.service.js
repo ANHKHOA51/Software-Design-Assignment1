@@ -4,4 +4,5 @@ export async function findByCategoryId(id) {
 	const category = await categoryModel.findByCategoryId(id);
 	const childrenCount = await categoryModel.countProductsInChildren(id);
 	category.product_count = parseInt(category.product_count) + parseInt(childrenCount.count);
+	return category;
 }
