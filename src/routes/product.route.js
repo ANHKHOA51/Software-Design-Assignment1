@@ -7,7 +7,6 @@ import * as biddingHistoryModel from '../models/biddingHistory.model.js';
 import * as productCommentModel from '../models/productComment.model.js';
 import * as categoryModel from '../models/category.model.js';
 import * as productDescUpdateModel from '../models/productDescriptionUpdate.model.js';
-import * as autoBiddingModel from '../models/autoBidding.model.js';
 import * as systemSettingModel from '../models/systemSetting.model.js';
 import * as rejectedBidderModel from '../models/rejectedBidder.model.js';
 import * as orderModel from '../models/order.model.js';

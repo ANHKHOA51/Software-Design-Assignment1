@@ -2,7 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import * as upgradeRequestModel from '../../models/upgradeRequest.model.js';
 import * as userModel from '../../models/user.model.js';
-import { sendMail } from '../../utils/mailer.js';
+import * as adminService from '../../services/adminService.js'
 const router = express.Router();
 
 
@@ -93,45 +93,8 @@ router.post('/edit', async (req, res) => {
 router.post('/reset-password', async (req, res) => {
     try {
         const { id } = req.body;
-        const defaultPassword = '123';
-        const hashedPassword = await bcrypt.hash(defaultPassword, 10);
         
-        // Get user info to send email
-        const user = await userModel.findById(id);
-        
-        await userModel.update(id, { 
-            password_hash: hashedPassword,
-            updated_at: new Date()
-        });
-        
-        // Send email notification to user
-        if (user && user.email) {
-            try {
-                await sendMail({
-                    to: user.email,
-                    subject: 'Your Password Has Been Reset - Online Auction',
-                    html: `
-                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                            <h2 style="color: #333;">Password Reset Notification</h2>
-                            <p>Dear <strong>${user.fullname}</strong>,</p>
-                            <p>Your account password has been reset by an administrator.</p>
-                            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                                <p style="margin: 0;"><strong>Your new temporary password:</strong></p>
-                                <p style="font-size: 24px; color: #e74c3c; margin: 10px 0; font-weight: bold;">${defaultPassword}</p>
-                            </div>
-                            <p style="color: #e74c3c;"><strong>Important:</strong> Please log in and change your password immediately for security purposes.</p>
-                            <p>If you did not request this password reset, please contact our support team immediately.</p>
-                            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                            <p style="color: #888; font-size: 12px;">This is an automated message from Online Auction. Please do not reply to this email.</p>
-                        </div>
-                    `
-                });
-                console.log(`Password reset email sent to ${user.email}`);
-            } catch (emailError) {
-                console.error('Failed to send password reset email:', emailError);
-                // Continue even if email fails - password is still reset
-            }
-        }
+        await adminService.resetPassword(id)
         
         req.session.success_message = `Password of ${user.fullname} reset successfully to default: 123`;
         res.redirect(`/admin/users/list`);
