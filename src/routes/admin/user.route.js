@@ -10,11 +10,11 @@ router.get('/list', async (req, res) => {
     const users = await userModel.loadAllUsers();
     const success_message = req.session.success_message;
     const error_message = req.session.error_message;
-    
+
     delete req.session.success_message;
     delete req.session.error_message;
-    
-    res.render('vwAdmin/users/list', { 
+
+    res.render('vwAdmin/users/list', {
         users,
         empty: users.length === 0,
         success_message,
@@ -46,7 +46,7 @@ router.post('/add', async (req, res) => {
             created_at: new Date(),
             updated_at: new Date()
         };
-        
+
         await userModel.add(newUser);
         req.session.success_message = 'User added successfully!';
         res.redirect('/admin/users/list');
@@ -60,16 +60,16 @@ router.get('/edit/:id', async (req, res) => {
     const id = req.params.id;
     const user = await userModel.findById(id);
     const error_message = req.session.error_message;
-    
+
     delete req.session.error_message;
-    
+
     res.render('vwAdmin/users/edit', { user, error_message });
 });
 
 router.post('/edit', async (req, res) => {
     try {
         const { id, fullname, email, address, date_of_birth, role, email_verified } = req.body;
-        
+
         const updateData = {
             fullname,
             email,
@@ -79,7 +79,7 @@ router.post('/edit', async (req, res) => {
             email_verified: email_verified === 'true',
             updated_at: new Date()
         };
-        
+
         await userModel.update(id, updateData);
         req.session.success_message = 'User updated successfully!';
         res.redirect('/admin/users/list');
@@ -95,15 +95,15 @@ router.post('/reset-password', async (req, res) => {
         const { id } = req.body;
         const defaultPassword = '123';
         const hashedPassword = await bcrypt.hash(defaultPassword, 10);
-        
+
         // Get user info to send email
         const user = await userModel.findById(id);
-        
-        await userModel.update(id, { 
+
+        await userModel.update(id, {
             password_hash: hashedPassword,
             updated_at: new Date()
         });
-        
+
         // Send email notification to user
         if (user && user.email) {
             try {
@@ -132,7 +132,7 @@ router.post('/reset-password', async (req, res) => {
                 // Continue even if email fails - password is still reset
             }
         }
-        
+
         req.session.success_message = `Password of ${user.fullname} reset successfully to default: 123`;
         res.redirect(`/admin/users/list`);
     } catch (error) {
@@ -163,7 +163,7 @@ router.post('/upgrade/approve', async (req, res) => {
     const bidderId = req.body.bidder_id;
     // Logic to approve the upgrade request
     await upgradeRequestModel.approveUpgradeRequest(id);
-    await userModel.updateUserRoleToSeller(bidderId);
+    await userModel.updateUserRole(bidderId, 'seller');
     res.redirect('/admin/users/upgrade-requests');
 });
 router.post('/upgrade/reject', async (req, res) => {

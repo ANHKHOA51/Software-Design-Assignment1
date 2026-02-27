@@ -154,74 +154,23 @@ export async function findByBuyerId(buyerId) {
 /**
  * Cập nhật trạng thái order
  */
-export async function updateStatus(orderId, newStatus, userId, note = null) {
-  const trx = await db.transaction();
-  
-  try {
-    // Lấy trạng thái cũ
-    const order = await trx('orders')
-      .where('id', orderId)
-      .first();
-    
-    if (!order) {
-      throw new Error('Order not found');
-    }
+export async function updateStatus(orderId, updateData, trx = db) {
+  const rows = await trx('orders')
+    .where('id', orderId)
+    .update(updateData)
+    .returning('*');
+  return rows[0];
+}
 
-    const oldStatus = order.status;
-    
-    // Cập nhật order
-    const updateData = {
-      status: newStatus,
-      updated_at: db.fn.now()
-    };
-
-    // Cập nhật timestamp tương ứng
-    switch (newStatus) {
-      case 'payment_submitted':
-        updateData.payment_submitted_at = db.fn.now();
-        break;
-      case 'payment_confirmed':
-        updateData.payment_confirmed_at = db.fn.now();
-        break;
-      case 'shipped':
-        updateData.shipped_at = db.fn.now();
-        break;
-      case 'delivered':
-        updateData.delivered_at = db.fn.now();
-        break;
-      case 'completed':
-        updateData.completed_at = db.fn.now();
-        break;
-      case 'cancelled':
-        updateData.cancelled_at = db.fn.now();
-        updateData.cancelled_by = userId;
-        if (note) {
-          updateData.cancellation_reason = note;
-        }
-        break;
-    }
-
-    await trx('orders')
-      .where('id', orderId)
-      .update(updateData);
-
-    // Ghi log vào order_status_history
-    await trx('order_status_history').insert({
-      order_id: orderId,
-      from_status: oldStatus,
-      to_status: newStatus,
-      changed_by: userId,
-      note: note,
+export async function insertStatusHistory(historyData, trx = db) {
+  const rows = await trx('order_status_history')
+    .insert({
+      ...historyData,
       created_at: db.fn.now()
-    });
+    })
+    .returning('*');
 
-    await trx.commit();
-    
-    return findById(orderId);
-  } catch (error) {
-    await trx.rollback();
-    throw error;
-  }
+  return rows[0];
 }
 
 /**
@@ -281,7 +230,7 @@ export async function cancelOrder(orderId, userId, reason) {
 export async function canUserAccessOrder(orderId, userId) {
   const order = await db('orders')
     .where('id', orderId)
-    .where(function() {
+    .where(function () {
       this.where('seller_id', userId)
         .orWhere('buyer_id', userId);
     })
@@ -309,7 +258,7 @@ export async function getStatusHistory(orderId) {
  */
 export async function countByStatus(userId, userType = 'buyer') {
   const column = userType === 'buyer' ? 'buyer_id' : 'seller_id';
-  
+
   return db('orders')
     .where(column, userId)
     .select('status')
