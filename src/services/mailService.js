@@ -1,47 +1,47 @@
 import { sendMail } from '../utils/mailer.js';
 
 export async function sendForgotPasswordMail(email, user, otp) {
-    await sendMail({
-        to: email,
-        subject: 'Password Reset for Your Online Auction Account',
-        html: `
+  await sendMail({
+    to: email,
+    subject: 'Password Reset for Your Online Auction Account',
+    html: `
       <p>Hi ${user.fullname},</p>
       <p>Your OTP code for password reset is: <strong>${otp}</strong></p>
       <p>This code will expire in 15 minutes.</p>
     `,
-    });
+  });
 }
 
 export async function resendResetPwOtp(email, user, otp) {
-    await sendMail({
-        to: email,
-        subject: 'New OTP for Password Reset',
-        html: `
+  await sendMail({
+    to: email,
+    subject: 'New OTP for Password Reset',
+    html: `
       <p>Hi ${user.fullname},</p>
       <p>Your new OTP code for password reset is: <strong>${otp}</strong></p>
       <p>This code will expire in 15 minutes.</p>
     `,
-    });
+  });
 }
 
 
 export async function sendOtpMail(email, user, otp) {
-    await sendMail({
-        to: email,
-        subject: 'Verify your Online Auction account',
-        html: `
+  await sendMail({
+    to: email,
+    subject: 'Verify your Online Auction account',
+    html: `
         <p>Hi ${user.fullname},</p>
         <p>Your OTP code is: <strong>${otp}</strong></p>
         <p>This code will expire in 15 minutes.</p>
       `,
-    });
+  });
 }
 
 export async function sendVerifySignupUrl(email, fullname, otp, verifyUrl) {
-    await sendMail({
-        to: email,
-        subject: 'Verify your Online Auction account',
-        html: `
+  await sendMail({
+    to: email,
+    subject: 'Verify your Online Auction account',
+    html: `
         <p>Hi ${fullname},</p>
         <p>Thank you for registering at Online Auction.</p>
         <p>Your OTP code is: <strong>${otp}</strong></p>
@@ -50,26 +50,26 @@ export async function sendVerifySignupUrl(email, fullname, otp, verifyUrl) {
         <p><a href="${verifyUrl}">Verify your email</a></p>
         <p>If you did not register, please ignore this email.</p>
         `,
-    });
+  });
 }
 
 export async function resendVerifyEmailOtp(email, user, otp) {
-    await sendMail({
-        to: email,
-        subject: 'New OTP for email verification',
-        html: `
+  await sendMail({
+    to: email,
+    subject: 'New OTP for email verification',
+    html: `
       <p>Hi ${user.fullname},</p>
       <p>Your new OTP code is: <strong>${otp}</strong></p>
       <p>This code will expire in 15 minutes.</p>
     `,
-    });
+  });
 }
 
 export async function notifyNewAddedDescription(user, product, productUrl, description) {
-    sendMail({
-        to: user.email,
-        subject: `[Auction Update] New description added for "${product.name}"`,
-        html: `
+  sendMail({
+    to: user.email,
+    subject: `[Auction Update] New description added for "${product.name}"`,
+    html: `
                         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                             <div style="background: linear-gradient(135deg, #72AEC8 0%, #5a9bb8 100%); padding: 20px; text-align: center;">
                                 <h1 style="color: white; margin: 0;">Product Description Updated</h1>
@@ -92,14 +92,14 @@ export async function notifyNewAddedDescription(user, product, productUrl, descr
                             </div>
                         </div>
                     `
-    })
+  })
 }
 
 export async function notifyPasswordReset(user, defaultPassword) {
-    await sendMail({
-        to: user.email,
-        subject: 'Your Password Has Been Reset - Online Auction',
-        html: `
+  await sendMail({
+    to: user.email,
+    subject: 'Your Password Has Been Reset - Online Auction',
+    html: `
                         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                             <h2 style="color: #333;">Password Reset Notification</h2>
                             <p>Dear <strong>${user.fullname}</strong>,</p>
@@ -114,12 +114,12 @@ export async function notifyPasswordReset(user, defaultPassword) {
                             <p style="color: #888; font-size: 12px;">This is an automated message from Online Auction. Please do not reply to this email.</p>
                         </div>
                     `
-    });
-    console.log(`Password reset email sent to ${user.email}`);
+  });
+  console.log(`Password reset email sent to ${user.email}`);
 }
 
 export async function notifyNewBid(productUrl, seller, result, currentBidder) {
-    return sendMail({
+  return sendMail({
     to: seller.email,
     subject: `💰 New bid on your product: ${result.productName}`,
     html: `
@@ -157,25 +157,25 @@ export async function notifyNewBid(productUrl, seller, result, currentBidder) {
         <p style="color: #888; font-size: 12px; text-align: center; margin-top: 20px;">This is an automated message from Online Auction.</p>
         </div>
     `
-    })
+  })
 }
 
 export async function notifyHighestBid(productUrl, currentBidder, isWinning, result) {
-    return sendMail({
-        to: currentBidder.email,
-        subject: isWinning 
-          ? `✅ You're winning: ${result.productName}` 
-          : `📊 Bid placed: ${result.productName}`,
-        html: `
+  return sendMail({
+    to: currentBidder.email,
+    subject: isWinning
+      ? `✅ You're winning: ${result.productName}`
+      : `📊 Bid placed: ${result.productName}`,
+    html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: linear-gradient(135deg, ${isWinning ? '#28a745' : '#ffc107'} 0%, ${isWinning ? '#218838' : '#e0a800'} 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
               <h1 style="color: white; margin: 0;">${isWinning ? "You're Winning!" : "Bid Placed"}</h1>
             </div>
             <div style="background-color: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
               <p>Dear <strong>${currentBidder.fullname}</strong>,</p>
-              <p>${isWinning 
-                ? 'Congratulations! Your bid has been placed and you are currently the highest bidder!' 
-                : 'Your bid has been placed. However, another bidder has a higher maximum bid.'}</p>
+              <p>${isWinning
+        ? 'Congratulations! Your bid has been placed and you are currently the highest bidder!'
+        : 'Your bid has been placed. However, another bidder has a higher maximum bid.'}</p>
               <div style="background-color: white; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid ${isWinning ? '#28a745' : '#ffc107'};">
                 <h3 style="margin: 0 0 15px 0; color: #333;">${result.productName}</h3>
                 <p style="margin: 5px 0;"><strong>Your Max Bid:</strong> ${new Intl.NumberFormat('en-US').format(result.bidAmount)} VND</p>
@@ -204,26 +204,26 @@ export async function notifyHighestBid(productUrl, currentBidder, isWinning, res
             <p style="color: #888; font-size: 12px; text-align: center; margin-top: 20px;">This is an automated message from Online Auction.</p>
           </div>
         `
-        });
+  });
 }
 
 export async function notifyOutBid(productUrl, previousBidder, wasOutbid, result) {
-    return sendMail({
-            to: previousBidder.email,
-            subject: wasOutbid 
-              ? `⚠️ You've been outbid: ${result.productName}`
-              : `📊 Price updated: ${result.productName}`,
-            html: `
+  return sendMail({
+    to: previousBidder.email,
+    subject: wasOutbid
+      ? `⚠️ You've been outbid: ${result.productName}`
+      : `📊 Price updated: ${result.productName}`,
+    html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="background: linear-gradient(135deg, ${wasOutbid ? '#dc3545' : '#ffc107'} 0%, ${wasOutbid ? '#c82333' : '#e0a800'} 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
                   <h1 style="color: white; margin: 0;">${wasOutbid ? "You've Been Outbid!" : "Price Updated"}</h1>
                 </div>
                 <div style="background-color: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
                   <p>Dear <strong>${previousBidder.fullname}</strong>,</p>
-                  ${wasOutbid 
-                    ? `<p>Unfortunately, another bidder has placed a higher bid on the product you were winning:</p>`
-                    : `<p>Good news! You're still the highest bidder, but the current price has been updated due to a new bid:</p>`
-                  }
+                  ${wasOutbid
+        ? `<p>Unfortunately, another bidder has placed a higher bid on the product you were winning:</p>`
+        : `<p>Good news! You're still the highest bidder, but the current price has been updated due to a new bid:</p>`
+      }
                   <div style="background-color: white; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid ${wasOutbid ? '#dc3545' : '#ffc107'};">
                     <h3 style="margin: 0 0 15px 0; color: #333;">${result.productName}</h3>
                     ${!wasOutbid ? `
@@ -255,14 +255,14 @@ export async function notifyOutBid(productUrl, previousBidder, wasOutbid, result
                 <p style="color: #888; font-size: 12px; text-align: center; margin-top: 20px;">This is an automated message from Online Auction.</p>
               </div>
             `
-            })
+  })
 }
 
 export async function notifyQuestionAnswered(productUrl, recipient, seller, product, content) {
-    return sendMail({
-          to: recipient.email,
-          subject: `Seller answered a question on: ${product.name}`,
-          html: `
+  return sendMail({
+    to: recipient.email,
+    subject: `Seller answered a question on: ${product.name}`,
+    html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h2 style="color: #667eea;">Seller Response on Product</h2>
               <p>Dear <strong>${recipient.fullname}</strong>,</p>
@@ -282,14 +282,14 @@ export async function notifyQuestionAnswered(productUrl, recipient, seller, prod
               <p style="color: #888; font-size: 12px;">This is an automated message from Online Auction. Please do not reply to this email.</p>
             </div>
           `
-        });
+  });
 }
 
 export async function notifyNewReply(productUrl, seller, product, commenter, content) {
-    return sendMail({
-        to: seller.email,
-        subject: `New reply on your product: ${product.name}`,
-        html: `
+  return sendMail({
+    to: seller.email,
+    subject: `New reply on your product: ${product.name}`,
+    html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #667eea;">New Reply on Your Product</h2>
             <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0;">
@@ -305,14 +305,14 @@ export async function notifyNewReply(productUrl, seller, product, commenter, con
             </div>
           </div>
         `
-      })
+  })
 }
 
 export async function notifyNewQuestion(productUrl, seller, product, commenter, content) {
-    sendMail({
-        to: seller.email,
-        subject: `New question about your product: ${product.name}`,
-        html: `
+  sendMail({
+    to: seller.email,
+    subject: `New question about your product: ${product.name}`,
+    html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #667eea;">New Question About Your Product</h2>
             <div style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0;">
@@ -328,5 +328,107 @@ export async function notifyNewQuestion(productUrl, seller, product, commenter, 
             </div>
           </div>
         `
-      })
+  })
+}
+
+export async function sendWinAutionSellerMail(auction, productUrl) {
+  await sendMail({
+    to: auction.seller_email,
+    subject: `🔔 Auction Ended: ${auction.name} - Winner Found!`,
+    html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <div style="background: linear-gradient(135deg, #72AEC8 0%, #5a9ab8 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                    <h1 style="color: white; margin: 0;">Auction Ended</h1>
+                  </div>
+                  <div style="background-color: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+                    <p>Dear <strong>${auction.seller_name}</strong>,</p>
+                    <p>Your auction has ended with a winner!</p>
+                    <div style="background-color: white; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #72AEC8;">
+                      <h3 style="margin: 0 0 10px 0; color: #333;">${auction.name}</h3>
+                      <p style="margin: 5px 0;"><strong>Winner:</strong> ${auction.winner_name}</p>
+                      <p style="font-size: 24px; color: #72AEC8; margin: 10px 0 0 0; font-weight: bold;">
+                        ${new Intl.NumberFormat('en-US').format(auction.current_price)} VND
+                      </p>
+                    </div>
+                    <p>The winner has been notified to complete payment. You will receive another notification once payment is confirmed.</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                      <a href="${productUrl}" style="display: inline-block; background: linear-gradient(135deg, #72AEC8 0%, #5a9ab8 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                        View Product
+                      </a>
+                    </div>
+                  </div>
+                  <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                  <p style="color: #888; font-size: 12px; text-align: center;">This is an automated message from Online Auction. Please do not reply to this email.</p>
+                </div>
+              `
+  });
+  console.log(`✅ Seller notification sent to ${auction.seller_email} for product #${auction.id}`);
+
+}
+
+export async function sendWinAutionBidderMail(auction, productUrl) {
+  await sendMail({
+    to: auction.winner_email,
+    subject: `🎉 Congratulations! You won the auction: ${auction.name}`,
+    html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                    <h1 style="color: white; margin: 0;">🎉 You Won!</h1>
+                  </div>
+                  <div style="background-color: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+                    <p>Dear <strong>${auction.winner_name}</strong>,</p>
+                    <p>Congratulations! You have won the auction for:</p>
+                    <div style="background-color: white; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #28a745;">
+                      <h3 style="margin: 0 0 10px 0; color: #333;">${auction.name}</h3>
+                      <p style="font-size: 24px; color: #28a745; margin: 0; font-weight: bold;">
+                        ${new Intl.NumberFormat('en-US').format(auction.current_price)} VND
+                      </p>
+                    </div>
+                    <p>Please complete your payment to finalize the purchase.</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                      <a href="${productUrl}" style="display: inline-block; background: linear-gradient(135deg, #28a745 0%, #218838 100%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
+                        Complete Payment
+                      </a>
+                    </div>
+                    <p style="color: #666; font-size: 14px;">Please complete payment within 3 days to avoid order cancellation.</p>
+                  </div>
+                  <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                  <p style="color: #888; font-size: 12px; text-align: center;">This is an automated message from Online Auction. Please do not reply to this email.</p>
+                </div>
+              `
+  });
+  console.log(`✅ Winner notification sent to ${auction.winner_email} for product #${auction.id}`);
+
+}
+
+export async function sendNoWinAuctionSellerMail(auction, productUrl) {
+  await sendMail({
+    to: auction.seller_email,
+    subject: `⏰ Auction Ended: ${auction.name} - No Bidders`,
+    html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <div style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                    <h1 style="color: white; margin: 0;">Auction Ended</h1>
+                  </div>
+                  <div style="background-color: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+                    <p>Dear <strong>${auction.seller_name}</strong>,</p>
+                    <p>Unfortunately, your auction has ended without any bidders.</p>
+                    <div style="background-color: white; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #6c757d;">
+                      <h3 style="margin: 0 0 10px 0; color: #333;">${auction.name}</h3>
+                      <p style="color: #6c757d; margin: 0;">No bids received</p>
+                    </div>
+                    <p>You can relist this product or create a new auction with adjusted pricing.</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                      <a href="${process.env.BASE_URL || 'http://localhost:3005'}/seller/add" style="display: inline-block; background: linear-gradient(135deg, #72AEC8 0%, #5a9ab8 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                        Create New Auction
+                      </a>
+                    </div>
+                  </div>
+                  <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                  <p style="color: #888; font-size: 12px; text-align: center;">This is an automated message from Online Auction. Please do not reply to this email.</p>
+                </div>
+              `
+  });
+  console.log(`✅ Seller notification (no bidders) sent to ${auction.seller_email} for product #${auction.id}`);
+
 }
